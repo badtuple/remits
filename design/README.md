@@ -92,20 +92,12 @@ possible. Here's a list of commands I can think of right now, but this is very
 much a work in progress and flexible as the project proceeds:
 
 Command                                             | Description
-----------------------------------------------------+----------------
+----------------------------------------------------|----------------
 `LOG ADD <log name>`                                | Create a new Log
-----------------------------------------------------+----------------
 `LOG DEL <log name>`                                | Delete a Log
-----------------------------------------------------+----------------
 `MSG ADD <log name> <message binary>`               | Add a Message to a log
-----------------------------------------------------+----------------
 `ITR ADD <log name> <iterator name> <lua function>` | Create an Iterator
-----------------------------------------------------+----------------
 `IDX ADD <log name> <iterator name> <lua function>` | Create an Indexed Iterator
-----------------------------------------------------+----------------
-`NXT <iterator name> <0|-1|message offset>`         | Get the next Message after a specific Offset.
-                                                    | `0` will always refer to the first message,
-						    | `-1` will refer to the latest message
-----------------------------------------------------+----------------
-`PRV <iterator name> <0|-1|message offset>`         | Get the Message before a specific Offset.
-						    | `-1` will refer to the latest message
+`NXT <iterator name> <0|-1|message offset>`         | Get the Message after a specific Offset. `0` refers to the first Message, and `-1` refers to the last Message.
+`PRV <iterator name> <0|-1|message offset>`         | Get the Message before a specific Offset. `-1` refers to the last Message.
+
