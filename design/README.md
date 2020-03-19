@@ -100,6 +100,6 @@ Command                                             | Description
 `MSG ADD <log name> <message binary>`               | Add a Message to a log
 `ITR ADD <log name> <iterator name> <lua function>` | Create an Iterator
 `IDX ADD <log name> <iterator name> <lua function>` | Create an Indexed Iterator
-`NXT <iterator name> <0|-1|message offset>`         | Get the Message after a specific Offset. `0` refers to the first Message, and `-1` refers to the last Message.
-`PRV <iterator name> <0|-1|message offset>`         | Get the Message before a specific Offset. `-1` refers to the last Message.
+`NXT <iterator name> <message offset> <count>`      | Get `count` Messages after a specific Offset. Offset `0` refers to the first Message, and Offest `-1` refers to the last Message.
+`PRV <iterator name> <message offset> <count>`      | Get `count` Messages before a specific Offset. Offset `-1` refers to the last Message.
 
