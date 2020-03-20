@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio::stream::StreamExt;
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
+use tokio_util::codec::{Encoder, Framed, LengthDelimitedCodec};
 
 use bytes::Bytes;
 use futures::SinkExt;
@@ -28,34 +28,38 @@ fn setup_logger() {
 async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
     debug!("accepting connection");
 
-    let mut resps = vec!();
-
     let mut framer = Framed::new(socket, LengthDelimitedCodec::new());
-    while let Some(result) = framer.next().await {
-        match result {
-            Ok(frame) => {
-                let cmd = match parser::parse(&*frame) {
-                    Ok(cmd) => cmd,
-                    Err(e) => {
-                        resps.push(format!("{:?}", e));
-                        continue
-                    },
-                };
 
-                match db.lock().unwrap().exec(cmd) {
-                    Ok(result) => resps.push(result),
-                    Err(e) => resps.push(format!("{:?}", e)),
-                };
-            }
+    while let Some(result) = framer.next().await {
+        let frame = match result {
+            Ok(f) => f,
             Err(e) => {
-                error!("error decoding from socket: {}", e);
+                error!("could not read from socket: {}", e);
                 break;
             }
-        }
-    }
+        };
 
-    if let Err(e) = framer.send(Bytes::from(resps.join("\n"))).await {
-        error!("could not respond: {}", e);
+        debug!("received command: {:?}", &frame);
+        let cmd = match parser::parse(&*frame) {
+            Ok(cmd) => cmd,
+            Err(e) => {
+                framer.send(e.into());
+                continue;
+            }
+        };
+
+
+        let out = db.lock().unwrap().exec(cmd);
+        let resp = match out {
+            Ok(res) => res.into(),
+            Err(e) => e.into(),
+        };
+
+        debug!("responding with: {:?}", resp);
+
+        if let Err(e) = framer.send(resp).await {
+            error!("could not respond: {}", e);
+        }
     }
 
     debug!("closing connection");

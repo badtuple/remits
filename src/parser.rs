@@ -1,4 +1,5 @@
 use std::str::from_utf8;
+use bytes::Bytes;
 
 pub fn parse(s: &[u8]) -> Result<Command, Error> {
     // Right now, the goal is that there will always be a 3 letter command,
@@ -34,4 +35,10 @@ pub enum Error {
     UnrecognizedCommand,
     MalformedCommand,
     LogNameNotUtf8,
+}
+
+impl From<Error> for Bytes {
+    fn from(e: Error) -> Self {
+        format!("{:?}", e).into()
+    }
 }

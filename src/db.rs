@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::parser::Command;
+use bytes::Bytes;
 
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
@@ -47,4 +48,10 @@ impl DB {
 #[derive(Debug)]
 pub enum Error {
     LogDoesNotExist,
+}
+
+impl From<Error> for Bytes {
+    fn from(e: Error) -> Self {
+        format!("{:?}", e).into()
+    }
 }
