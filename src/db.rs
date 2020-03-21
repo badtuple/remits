@@ -1,19 +1,23 @@
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+use  std::time::SystemTime;
 
 use crate::parser::Command;
 use bytes::Bytes;
+
 
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
 #[derive(Debug)]
 pub struct DB {
+    manifest: Manifest,
     logs: HashMap<String, Log>,
 }
 
 impl DB {
     pub fn new() -> Self {
         DB {
+            manifest: Manifest::new(),
             logs: HashMap::new(),
         }
     }
@@ -31,6 +35,7 @@ impl DB {
 
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
+        self.manifest.add_log(name.clone());
         self.logs.entry(name).or_insert_with(|| vec![]);
         Ok("ok".to_owned())
     }
@@ -52,13 +57,61 @@ impl DB {
             Some(l) => {
                 l.push(msg);
                 Ok("ok".to_owned())
-            },
+            }
             None => Err(Error::LogDoesNotExist),
         }
     }
 }
 
 type Log = Vec<Vec<u8>>;
+
+
+/// The Manifest is a file at the root of the database directory that is used
+/// as a registry for database constructs such as Logs and Iters. It will map
+/// the identifiers of those constructs to their corresponding files, along
+/// with any metadata needed.
+///
+/// Right now the Manifest is held in memory, just like the rest of POC database
+/// until we are happy with the interface.
+#[derive(Debug)]
+struct Manifest {
+    /// List of all existing logs
+    logs: HashMap<String, LogRegistrant>,
+
+    /// List of all existing Iters
+    /// TODO: Once Iters are built out, store the actual code so they can be
+    /// rebuilt.  For now, it's just the identifier.
+    iters: HashMap<String, IterRegistrant>,
+}
+
+impl Manifest {
+    fn new() -> Self {
+        Manifest {
+            logs: HashMap::new(),
+            iters: HashMap::new(),
+        }
+    }
+
+    fn add_log(&mut self, name: String) {
+        self.logs.entry(name.clone()).or_insert_with(|| {
+            LogRegistrant {
+                name: name,
+                created_at: SystemTime::now(),
+            }
+        });
+    }
+}
+
+/// The Manifest entry for a Log
+#[derive(Debug)]
+struct LogRegistrant {
+    name: String,
+    created_at: SystemTime,
+}
+
+// TODO
+#[derive(Debug)]
+struct IterRegistrant;
 
 #[derive(Debug)]
 pub enum Error {
