@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use crate::parser::Command;
 use bytes::Bytes;
@@ -22,6 +23,7 @@ impl DB {
 
         match cmd {
             LogAdd(name) => self.log_add(name),
+            LogDel(name) => self.log_del(name),
             MsgAdd { log, msg } => self.msg_add(log, msg),
             _ => unimplemented!(),
         }
@@ -30,6 +32,17 @@ impl DB {
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
         self.logs.entry(name).or_insert_with(|| vec![]);
+        Ok("ok".to_owned())
+    }
+
+    /// Deletes a log from the DB
+    fn log_del(&mut self, name: String) -> Result<String, Error> {
+        if let Entry::Occupied(l) = self.logs.entry(name) {
+            if l.get().is_empty() {
+                l.remove_entry();
+            }
+        };
+
         Ok("ok".to_owned())
     }
 

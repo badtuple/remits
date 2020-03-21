@@ -10,6 +10,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
     let (cmd_str, data) = input.split_at(8);
     match cmd_str {
         b"LOG ADD " => parse_log_add(data),
+        b"LOG DEL " => parse_log_del(data),
         b"MSG ADD " => parse_msg_add(data),
         _ => {
             debug!("{:?}", cmd_str);
@@ -21,6 +22,13 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
 fn parse_log_add(data: &[u8]) -> Result<Command, Error> {
     match from_utf8(data) {
         Ok(s) => Ok(Command::LogAdd(s.to_owned())),
+        Err(_) => Err(Error::LogNameNotUtf8),
+    }
+}
+
+fn parse_log_del(data: &[u8]) -> Result<Command, Error> {
+    match from_utf8(data) {
+        Ok(s) => Ok(Command::LogDel(s.to_owned())),
         Err(_) => Err(Error::LogNameNotUtf8),
     }
 }
