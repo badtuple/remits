@@ -1,32 +1,48 @@
-use std::str::from_utf8;
 use bytes::Bytes;
+use std::str::from_utf8;
 
-pub fn parse(s: &[u8]) -> Result<Command, Error> {
-    // Right now, the goal is that there will always be a 3 letter command,
-    // a space, and a 3 letter primary arg. The rest is optional.
-    if s.len() < 7 {
+pub fn parse(input: &[u8]) -> Result<Command, Error> {
+    // Right now, the first 7 charactes of any valid query designates the command.
+    if input.len() < 7 {
         return Err(Error::MalformedCommand);
     }
 
-    use Command::*;
-    use Error::*;
-
-    let cmd = match s {
-        // ew. there has to be a better way to do this
-        [b'L', b'O', b'G', b' ', b'A', b'D', b'D', rest @ ..] => match from_utf8(rest) {
-            Ok(s) => LogAdd(s.to_owned()),
-            Err(_) => return Err(LogNameNotUtf8),
+    let (cmd_str, data) = input.split_at(8);
+    match cmd_str {
+        b"LOG ADD " => parse_log_add(data),
+        b"MSG ADD " => parse_msg_add(data),
+        _ => {
+            debug!("{:?}", cmd_str);
+            Err(Error::UnrecognizedCommand)
         },
-        _ => return Err(UnrecognizedCommand),
-    };
+    }
+}
 
-    Ok(cmd)
+fn parse_log_add(data: &[u8]) -> Result<Command, Error> {
+    match from_utf8(data) {
+        Ok(s) => Ok(Command::LogAdd(s.to_owned())),
+        Err(_) => Err(Error::LogNameNotUtf8),
+    }
+}
+
+fn parse_msg_add(data: &[u8]) -> Result<Command, Error> {
+    let parts: Vec<&[u8]> = data.splitn(2, |b| *b == b' ').collect();
+    match &*parts {
+        [log_u8, msg] => match from_utf8(log_u8) {
+            Ok(log) => Ok(Command::MsgAdd {
+                log: log.to_owned(),
+                msg: msg.to_vec(),
+            }),
+            Err(_) => Err(Error::LogNameNotUtf8),
+        },
+        _ => Err(Error::NotEnoughArguments),
+    }
 }
 
 pub enum Command {
     LogAdd(String),
     LogDel(String),
-    MsgAdd { log: String, msg: String },
+    MsgAdd { log: String, msg: Vec<u8> },
     ItrAdd(String),
 }
 
@@ -35,6 +51,7 @@ pub enum Error {
     UnrecognizedCommand,
     MalformedCommand,
     LogNameNotUtf8,
+    NotEnoughArguments,
 }
 
 impl From<Error> for Bytes {

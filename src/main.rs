@@ -6,9 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio::stream::StreamExt;
-use tokio_util::codec::{Encoder, Framed, LengthDelimitedCodec};
+use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use bytes::Bytes;
 use futures::SinkExt;
 
 mod db;
@@ -43,7 +42,8 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
         let cmd = match parser::parse(&*frame) {
             Ok(cmd) => cmd,
             Err(e) => {
-                framer.send(e.into());
+                debug!("responding with: {:?}", e);
+                let _ = framer.send(e.into());
                 continue;
             }
         };
@@ -56,7 +56,6 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
         };
 
         debug!("responding with: {:?}", resp);
-
         if let Err(e) = framer.send(resp).await {
             error!("could not respond: {}", e);
         }
