@@ -98,8 +98,8 @@ Command                                             | Description
 `LOG ADD <log name>`                                | Create a new Log
 `LOG DEL <log name>`                                | Delete a Log
 `MSG ADD <log name> <message binary>`               | Add a Message to a log
-`ITR ADD <log name> <iterator name> <lua function>` | Create an Iterator
-`IDX ADD <log name> <iterator name> <lua function>` | Create an Indexed Iterator
+`ITR ADD <log name> <iterator name> <iterator type> <lua function>` | Create an Iterator
+`IDX ADD <log name> <iterator name> <iterator type> <lua function>` | Create an Indexed Iterator
 `ITR NXT <iterator name> <message offset> <count>`      | Get `count` Messages after a specific Offset. Offset `0` refers to the first Message, and Offest `-1` refers to the last Message.
 `ITR PRV <iterator name> <message offset> <count>`      | Get `count` Messages before a specific Offset. Offset `-1` refers to the last Message.
 

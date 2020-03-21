@@ -1,10 +1,9 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use  std::time::SystemTime;
+use std::time::SystemTime;
 
 use crate::parser::Command;
 use bytes::Bytes;
-
 
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
@@ -29,7 +28,12 @@ impl DB {
             LogAdd(name) => self.log_add(name),
             LogDel(name) => self.log_del(name),
             MsgAdd { log, msg } => self.msg_add(log, msg),
-            _ => unimplemented!(),
+            ItrAdd {
+                log,
+                name,
+                kind,
+                func,
+            } => self.itr_add(log, name, kind, func),
         }
     }
 
@@ -61,10 +65,21 @@ impl DB {
             None => Err(Error::LogDoesNotExist),
         }
     }
+
+    /// Adds a new unindexed iterator to a log
+    fn itr_add(
+        &mut self,
+        log: String,
+        name: String,
+        kind: String,
+        func: String,
+    ) -> Result<String, Error> {
+        self.manifest.add_itr(log, name, kind, func)?;
+        Ok("ok".to_owned())
+    }
 }
 
 type Log = Vec<Vec<u8>>;
-
 
 /// The Manifest is a file at the root of the database directory that is used
 /// as a registry for database constructs such as Logs and Iters. It will map
@@ -81,24 +96,52 @@ struct Manifest {
     /// List of all existing Iters
     /// TODO: Once Iters are built out, store the actual code so they can be
     /// rebuilt.  For now, it's just the identifier.
-    iters: HashMap<String, IterRegistrant>,
+    itrs: HashMap<String, ItrRegistrant>,
 }
 
 impl Manifest {
     fn new() -> Self {
         Manifest {
             logs: HashMap::new(),
-            iters: HashMap::new(),
+            itrs: HashMap::new(),
         }
     }
 
     fn add_log(&mut self, name: String) {
-        self.logs.entry(name.clone()).or_insert_with(|| {
-            LogRegistrant {
+        self.logs
+            .entry(name.clone())
+            .or_insert_with(|| LogRegistrant {
                 name: name,
                 created_at: SystemTime::now(),
+            });
+    }
+
+    fn add_itr(
+        &mut self,
+        log: String,
+        name: String,
+        kind: String,
+        func: String,
+    ) -> Result<(), Error> {
+        let entry = self.itrs.entry(name.clone());
+        match entry {
+            Entry::Occupied(e) => {
+                let itr = e.get();
+                if itr.log != log || itr.kind != kind || itr.func != func {
+                    return Err(Error::ItrExistsWithSameName);
+                }
             }
-        });
+            Entry::Vacant(e) => {
+                e.insert(ItrRegistrant {
+                    log,
+                    name,
+                    kind,
+                    func,
+                });
+            }
+        };
+
+        Ok(())
     }
 }
 
@@ -109,13 +152,18 @@ struct LogRegistrant {
     created_at: SystemTime,
 }
 
-// TODO
 #[derive(Debug)]
-struct IterRegistrant;
+struct ItrRegistrant {
+    log: String,
+    name: String,
+    kind: String,
+    func: String,
+}
 
 #[derive(Debug)]
 pub enum Error {
     LogDoesNotExist,
+    ItrExistsWithSameName,
 }
 
 impl From<Error> for Bytes {

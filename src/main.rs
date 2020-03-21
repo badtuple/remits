@@ -48,7 +48,6 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
             }
         };
 
-
         let out = db.lock().unwrap().exec(cmd);
         let resp = match out {
             Ok(res) => res.into(),
