@@ -38,7 +38,20 @@ impl Manifest {
                 created_at: SystemTime::now(),
             });
     }
+    pub fn del_log(&mut self, name: String) {
+        self.logs.remove(&name.clone());
+        let to_be_deleted: Vec<String> = self
+            .itrs
+            .iter()
+            .filter(|(_, itr)| itr.log == name)
+            .map(|(_, x)| x.name.clone())
+            .collect();
 
+        for itr in to_be_deleted.iter() {
+            self.del_itr(name.clone(), itr.to_owned())
+                .expect("Could not delete itrs associated with log");
+        }
+    }
     pub fn add_itr(
         &mut self,
         log: String,
