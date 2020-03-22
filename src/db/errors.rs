@@ -12,4 +12,3 @@ impl From<Error> for Bytes {
         format!("{:?}", e).into()
     }
 }
-

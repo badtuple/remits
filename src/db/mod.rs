@@ -1,12 +1,12 @@
-mod manifest;
 mod errors;
+mod manifest;
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use crate::parser::Command;
-use manifest::Manifest;
 use errors::Error;
+use manifest::Manifest;
 
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
