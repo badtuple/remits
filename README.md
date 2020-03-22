@@ -1,4 +1,4 @@
-Remits  &nbsp;[![Discord](https://img.shields.io/discord/691125113659195474)](https://discord.gg/gSVR24K) 
+Remits  &nbsp;![Rust](https://github.com/badtuple/remits/workflows/Rust/badge.svg) [![Discord](https://img.shields.io/discord/691125113659195474)](https://discord.gg/gSVR24K)
 ======
 
 Remote Iterator Server
