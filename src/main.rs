@@ -43,7 +43,7 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
             Ok(cmd) => cmd,
             Err(e) => {
                 debug!("responding with: {:?}", e);
-                let _ = framer.send(e.into());
+                let _ = framer.send(e.into()).await;
                 continue;
             }
         };

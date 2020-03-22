@@ -11,10 +11,18 @@ Remits is built to be fast, lightweight, and reliable. It is intended to be easy
 
 ## Installation
 
+To build the server:
+
 ```sh
 git clone https://github.com/badtuple/remits
 cd remits
-cargo build --release
+cargo build --release --bin remits
+```
+
+To build the CLI Client for testing/administration:
+
+```sh
+cargo build --release --bin client
 ```
 
 ## Design

@@ -3,6 +3,7 @@ name = "remits"
 version = "0.1.0"
 authors = ["badtuple <the.legend@badtuple.me>"]
 edition = "2018"
+default-run = "remits"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
