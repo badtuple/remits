@@ -83,6 +83,7 @@ fn parse_itr_add(data: &[u8]) -> Result<Command, Error> {
     }
 }
 
+#[derive(Debug)]
 pub enum Command {
     LogAdd(String),
     LogDel(String),
@@ -113,5 +114,47 @@ pub enum Error {
 impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
         format!("{:?}", e).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_parse() {
+        let unknown_command = parse("unknown command".as_bytes());
+        assert_eq!(
+            format!("{:?}", unknown_command),
+            format!("Err(UnrecognizedCommand)")
+        );
+
+        let undersized_command = parse("2short".as_bytes());
+        assert_eq!(
+            format!("{:?}", undersized_command),
+            format!("Err(MalformedCommand)")
+        );
+
+        let log_add_out = parse("LOG ADD test".as_bytes());
+        assert_eq!(
+            format!("{:?}", log_add_out),
+            format!("Ok(LogAdd(\"test\"))")
+        );
+
+        let log_del_out = parse("LOG DEL test".as_bytes());
+        assert_eq!(
+            format!("{:?}", log_del_out),
+            format!("Ok(LogDel(\"test\"))")
+        );
+
+        let msg_add_out = parse("MSG ADD test testing comment".as_bytes());
+        assert_eq!(format!("{:?}",msg_add_out), format!("Ok(MsgAdd {{ log: \"test\", msg: [116, 101, 115, 116, 105, 110, 103, 32, 99, 111, 109, 109, 101, 110, 116] }})"));
+
+        let itr_add_out = parse("ITR ADD test itr reduce func".as_bytes());
+        assert_eq!(
+            format!("{:?}", itr_add_out),
+            format!(
+                "Ok(ItrAdd {{ log: \"test\", name: \"itr\", kind: \"reduce\", func: \"func\" }})"
+            )
+        );
     }
 }
