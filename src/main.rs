@@ -88,3 +88,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         debug!("{:?}", db);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    //use super::*;
+    // TODO
+    #[test]
+    fn test_main() {}
+    // TODO
+    #[test]
+    fn test_handle_socket() {}
+    // TODO
+    #[test]
+    fn test_setup_logger() {}
+}

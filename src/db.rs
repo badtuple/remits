@@ -7,7 +7,7 @@ use bytes::Bytes;
 
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DB {
     manifest: Manifest,
     logs: HashMap<String, Log>,
@@ -88,7 +88,7 @@ type Log = Vec<Vec<u8>>;
 ///
 /// Right now the Manifest is held in memory, just like the rest of POC database
 /// until we are happy with the interface.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Manifest {
     /// List of all existing logs
     logs: HashMap<String, LogRegistrant>,
@@ -111,7 +111,7 @@ impl Manifest {
         self.logs
             .entry(name.clone())
             .or_insert_with(|| LogRegistrant {
-                name: name,
+                name,
                 created_at: SystemTime::now(),
             });
     }
@@ -146,13 +146,13 @@ impl Manifest {
 }
 
 /// The Manifest entry for a Log
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct LogRegistrant {
     name: String,
     created_at: SystemTime,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct ItrRegistrant {
     log: String,
     name: String,
@@ -160,7 +160,7 @@ struct ItrRegistrant {
     func: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     LogDoesNotExist,
     ItrExistsWithSameName,
@@ -169,5 +169,157 @@ pub enum Error {
 impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
         format!("{:?}", e).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_manifest_new() {
+        let manifest = Manifest::new();
+        assert_eq!(
+            manifest,
+            Manifest {
+                logs: HashMap::new(),
+                itrs: HashMap::new(),
+            }
+        );
+    }
+    #[test]
+    fn test_manifest_add_log() {
+        let mut manifest = Manifest::new();
+        manifest.add_log("test".to_owned());
+        manifest.add_log("test2".to_owned());
+        manifest.add_log("test3".to_owned());
+        assert!(manifest.logs.contains_key("test"));
+        assert!(manifest.logs.contains_key("test2"));
+        assert!(manifest.logs.contains_key("test3"));
+        assert_eq!(manifest.logs.contains_key("test1"), false);
+
+        // This second add_log is here to make sure code does not panic
+        manifest.add_log("test".to_owned());
+    }
+    #[test]
+    fn test_manifest_add_itr() {
+        let mut manifest = Manifest::new();
+        let _ = manifest.add_itr(
+            "test".to_owned(),
+            "fun".to_owned(),
+            "lua".to_owned(),
+            "func".to_owned(),
+        );
+        let _ = manifest.add_itr(
+            "test".to_owned(),
+            "fun2".to_owned(),
+            "lua".to_owned(),
+            "func".to_owned(),
+        );
+        let _ = manifest.add_itr(
+            "test".to_owned(),
+            "fun3".to_owned(),
+            "lua".to_owned(),
+            "func".to_owned(),
+        );
+        assert!(manifest.itrs.contains_key("fun"));
+        assert!(manifest.itrs.contains_key("fun2"));
+        assert!(manifest.itrs.contains_key("fun3"));
+        assert_eq!(manifest.logs.contains_key("fun1"), false);
+
+        let duplicate_error = manifest.add_itr(
+            "test".to_owned(),
+            "fun".to_owned(),
+            "lua".to_owned(),
+            "func2".to_owned(),
+        );
+        assert_eq!(
+            format!("{:?}", duplicate_error),
+            format!("Err(ItrExistsWithSameName)")
+        );
+    }
+    #[test]
+    fn test_db_new() {
+        let db = DB::new();
+        assert_eq!(
+            db,
+            DB {
+                manifest: Manifest {
+                    logs: HashMap::new(),
+                    itrs: HashMap::new(),
+                },
+                logs: HashMap::new()
+            }
+        );
+    }
+    #[test]
+    fn test_db_log_add() {
+        let mut db = DB::new();
+        let out = db.log_add("test".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
+        let out2 = db.log_add("test".to_owned()).unwrap();
+        assert_eq!(out2, "ok".to_owned());
+    }
+    #[test]
+    fn test_db_log_del() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        // Normal
+        let out = db.log_del("test".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
+        // Repeat
+        let out = db.log_del("test".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
+        // Never existed
+        let out = db.log_del("test1".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
+    }
+    #[test]
+    fn test_db_msg_add() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        // Normal
+        let out = db
+            .msg_add("test".to_owned(), "hello".as_bytes().to_vec())
+            .unwrap();
+        assert_eq!(out, "ok".to_owned());
+        assert_eq!(db.logs.len(), 1);
+        assert_eq!(db.logs["test"][0], "hello".as_bytes().to_vec());
+
+        let out = db
+            .msg_add("test".to_owned(), "hello2".as_bytes().to_vec())
+            .unwrap();
+        assert_eq!(out, "ok".to_owned());
+        assert_eq!(db.logs.len(), 1);
+        assert_eq!(db.logs["test"][1], "hello2".as_bytes().to_vec());
+    }
+    #[test]
+    #[should_panic]
+    fn test_db_msg_add_log_dne() {
+        let mut db = DB::new();
+        db.msg_add("test".to_owned(), "hello".as_bytes().to_vec())
+            .unwrap();
+    }
+    // This test is not needed now. It is a wrapper for manifest.add_iter()
+    #[test]
+    fn test_db_itr_add() {
+        let mut db = DB::new();
+        let out = db
+            .itr_add(
+                "test".to_owned(),
+                "std_dev avg users".to_owned(),
+                "bf".to_owned(),
+                "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
+                    .to_owned(),
+            )
+            .unwrap();
+        assert_eq!(out, "ok".to_owned());
+        assert_eq!(db.manifest.itrs.len(), 1);
+    }
+    // This test is not needed now. if any logic other than match is added to exec we would add it here
+    #[test]
+    fn test_db_exec() {
+        let mut db = DB::new();
+        let out = db.exec(Command::LogAdd("test".to_owned())).unwrap();
+        assert_eq!(out, "ok");
     }
 }

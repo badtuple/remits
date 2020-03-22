@@ -1,10 +1,10 @@
 use std::io;
 use std::io::Write;
 
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
+use futures::SinkExt;
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
-use futures::SinkExt;
+use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 static LOCAL_REMITS: &str = "localhost:4242";
 
@@ -14,7 +14,9 @@ fn print_prompt() {
 }
 
 async fn connect_to_remits() -> TcpStream {
-    TcpStream::connect(LOCAL_REMITS).await.expect("could not open tcp stream to localhost:4242")
+    TcpStream::connect(LOCAL_REMITS)
+        .await
+        .expect("could not open tcp stream to localhost:4242")
 }
 
 #[tokio::main]
@@ -37,10 +39,10 @@ async fn main() {
         match framer.send(input.into()).await {
             Ok(_) => {
                 match framer.next().await {
-                    Some(result) => println!("{:?}", result.unwrap_or("".into())),
+                    Some(result) => println!("{:?}", result.unwrap_or_else(|_| "".into())),
                     None => eprintln!("no response from remits"),
                 };
-            },
+            }
             Err(e) => eprintln!("could not send to remits: {}", e),
         };
 
