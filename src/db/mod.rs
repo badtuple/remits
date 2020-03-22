@@ -50,10 +50,9 @@ impl DB {
 
     /// Deletes a log from the DB
     fn log_del(&mut self, name: String) -> Result<String, Error> {
-        if let Entry::Occupied(l) = self.logs.entry(name) {
-            if l.get().is_empty() {
-                l.remove_entry();
-            }
+        if let Entry::Occupied(l) = self.logs.entry(name.clone()) {
+            l.remove_entry();
+            self.manifest.del_log(name);
         };
 
         Ok("ok".to_owned())
@@ -116,20 +115,6 @@ mod tests {
         assert_eq!(out2, "ok".to_owned());
     }
     #[test]
-    fn test_db_log_del() {
-        let mut db = DB::new();
-        let _ = db.log_add("test".to_owned()).unwrap();
-        // Normal
-        let out = db.log_del("test".to_owned()).unwrap();
-        assert_eq!(out, "ok".to_owned());
-        // Repeat
-        let out = db.log_del("test".to_owned()).unwrap();
-        assert_eq!(out, "ok".to_owned());
-        // Never existed
-        let out = db.log_del("test1".to_owned()).unwrap();
-        assert_eq!(out, "ok".to_owned());
-    }
-    #[test]
     fn test_db_msg_add() {
         let mut db = DB::new();
         let _ = db.log_add("test".to_owned()).unwrap();
@@ -154,6 +139,28 @@ mod tests {
         let mut db = DB::new();
         db.msg_add("test".to_owned(), "hello".as_bytes().to_vec())
             .unwrap();
+    }
+    #[test]
+    fn test_db_log_del() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        let _ = db.manifest.add_itr(
+            "test".to_owned(),
+            "fun".to_owned(),
+            "lua".to_owned(),
+            "func".to_owned(),
+        );
+        assert_eq!(db.manifest.logs.len(), 1);
+        // Normal
+        let out = db.log_del("test".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
+        assert_eq!(db.manifest.logs.len(), 0);
+        // Repeat
+        let out = db.log_del("test".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
+        // Never existed
+        let out = db.log_del("test1".to_owned()).unwrap();
+        assert_eq!(out, "ok".to_owned());
     }
     // This test is not needed now. It is a wrapper for manifest.add_iter()
     #[test]
