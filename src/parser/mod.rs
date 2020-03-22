@@ -1,6 +1,8 @@
+mod commands;
 mod errors;
 
-use errors::Error;
+pub use commands::Command;
+pub use errors::Error;
 use std::str::from_utf8;
 
 pub fn parse(input: &[u8]) -> Result<Command, Error> {
@@ -105,70 +107,42 @@ fn parse_itr_del(data: &[u8]) -> Result<Command, Error> {
     }
 }
 
-#[derive(Debug)]
-pub enum Command {
-    LogAdd(String),
-    LogDel(String),
-    MsgAdd {
-        log: String,
-        msg: Vec<u8>,
-    },
-    ItrAdd {
-        log: String,
-        name: String,
-        kind: String,
-        func: String,
-    },
-    ItrDel {
-        log: String,
-        name: String,
-    },
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use commands::Command::*;
+    use errors::Error::*;
+
     #[test]
     fn test_parse() {
         let unknown_command = parse("unknown command".as_bytes());
-        assert_eq!(
-            format!("{:?}", unknown_command),
-            format!("Err(UnrecognizedCommand)")
-        );
+        assert_eq!(unknown_command, Err(UnrecognizedCommand));
 
         let undersized_command = parse("2short".as_bytes());
-        assert_eq!(
-            format!("{:?}", undersized_command),
-            format!("Err(MalformedCommand)")
-        );
+        assert_eq!(undersized_command, Err(MalformedCommand));
 
         let log_add_out = parse("LOG ADD test".as_bytes());
-        assert_eq!(
-            format!("{:?}", log_add_out),
-            format!("Ok(LogAdd(\"test\"))")
-        );
+        assert_eq!(log_add_out, Ok(LogAdd("test".to_owned())));
 
         let log_del_out = parse("LOG DEL test".as_bytes());
-        assert_eq!(
-            format!("{:?}", log_del_out),
-            format!("Ok(LogDel(\"test\"))")
-        );
+        assert_eq!(log_del_out, Ok(LogDel("test".to_owned())));
 
         let msg_add_out = parse("MSG ADD test testing comment".as_bytes());
-        assert_eq!(format!("{:?}",msg_add_out), format!("Ok(MsgAdd {{ log: \"test\", msg: [116, 101, 115, 116, 105, 110, 103, 32, 99, 111, 109, 109, 101, 110, 116] }})"));
+        assert_eq!(
+            msg_add_out,
+            Ok(MsgAdd {
+                log: "test".to_owned(),
+                msg: b"testing comment".to_vec(),
+            })
+        );
 
         let itr_add_out = parse("ITR ADD test itr reduce func".as_bytes());
         assert_eq!(
-            format!("{:?}", itr_add_out),
-            format!(
-                "Ok(ItrAdd {{ log: \"test\", name: \"itr\", kind: \"reduce\", func: \"func\" }})"
-            )
+            itr_add_out,
+            Ok(Command::new_itr_add("test", "itr", "reduce", "func"))
         );
 
         let itr_del_out = parse("ITR DEL test itr".as_bytes());
-        assert_eq!(
-            format!("{:?}", itr_del_out),
-            format!("Ok(ItrDel {{ log: \"test\", name: \"itr\" }})")
-        );
+        assert_eq!(itr_del_out, Ok(Command::new_itr_del("test", "itr")));
     }
 }
