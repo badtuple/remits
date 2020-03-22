@@ -13,6 +13,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
         b"LOG DEL " => parse_log_del(data),
         b"MSG ADD " => parse_msg_add(data),
         b"ITR ADD " => parse_itr_add(data),
+        b"ITR DEL " => parse_itr_del(data),
         _ => {
             debug!("{:?}", cmd_str);
             Err(Error::UnrecognizedCommand)
@@ -82,6 +83,25 @@ fn parse_itr_add(data: &[u8]) -> Result<Command, Error> {
         _ => Err(Error::NotEnoughArguments),
     }
 }
+fn parse_itr_del(data: &[u8]) -> Result<Command, Error> {
+    let parts: Vec<&[u8]> = data.splitn(2, |b| *b == b' ').collect();
+    match &*parts {
+        [raw_log, raw_itr] => {
+            let log = match from_utf8(raw_log) {
+                Ok(log) => log.to_owned(),
+                Err(_) => return Err(Error::LogNameNotUtf8),
+            };
+
+            let name = match from_utf8(raw_itr) {
+                Ok(itr) => itr.to_owned(),
+                Err(_) => return Err(Error::ItrNameNotUtf8),
+            };
+
+            Ok(Command::ItrDel { log, name })
+        }
+        _ => Err(Error::NotEnoughArguments),
+    }
+}
 
 #[derive(Debug)]
 pub enum Command {
@@ -96,6 +116,10 @@ pub enum Command {
         name: String,
         kind: String,
         func: String,
+    },
+    ItrDel {
+        log: String,
+        name: String,
     },
 }
 
@@ -155,6 +179,12 @@ mod tests {
             format!(
                 "Ok(ItrAdd {{ log: \"test\", name: \"itr\", kind: \"reduce\", func: \"func\" }})"
             )
+        );
+
+        let itr_del_out = parse("ITR DEL test itr".as_bytes());
+        assert_eq!(
+            format!("{:?}", itr_del_out),
+            format!("Ok(ItrDel {{ log: \"test\", name: \"itr\" }})")
         );
     }
 }

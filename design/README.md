@@ -1,5 +1,4 @@
-Design
-======
+# Design
 
 This document is a high level description of Remits' protocol/api, operations,
 and some intended features. It's to help communicate intent and direction during
@@ -36,9 +35,10 @@ a custom audit log where Messages are arbitray binary objects.
 ## Log
 
 Logs can only be:
-  * Created
-  * Deleted
-  * Pushed to
+
+* Created
+* Deleted
+* Pushed to
 
 You cannot delete or update a Message from a log. You can only push a new one.
 You cannot query a log directly. You must always use an iterator.
@@ -49,7 +49,8 @@ Iterators query Messages from Logs.
 
 You define an Iterator via a Lua function (choice of Lua is up for discussion.)
 There are three types of Iterators:
-  1. A *Map* Iterator transforms each Message before sending it to the client. 
+
+  1. A *Map* Iterator transforms each Message before sending it to the client.
   2. A *Filter* Iterator takes each Message and returns a boolean. If `false`
      is returned, the Message is not sent to the client. If `true` is returned,
      the Message is sent to the client.
@@ -102,4 +103,3 @@ Command                                             | Description
 `IDX ADD <log name> <iterator name> <iterator type> <lua function>` | Create an Indexed Iterator
 `ITR NXT <iterator name> <message offset> <count>`      | Get `count` Messages after a specific Offset. Offset `0` refers to the first Message, and Offest `-1` refers to the last Message.
 `ITR PRV <iterator name> <message offset> <count>`      | Get `count` Messages before a specific Offset. Offset `-1` refers to the last Message.
-

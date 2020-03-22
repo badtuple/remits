@@ -34,6 +34,7 @@ impl DB {
                 kind,
                 func,
             } => self.itr_add(log, name, kind, func),
+            ItrDel { log, name } => self.itr_del(log, name),
         }
     }
 
@@ -75,6 +76,11 @@ impl DB {
         func: String,
     ) -> Result<String, Error> {
         self.manifest.add_itr(log, name, kind, func)?;
+        Ok("ok".to_owned())
+    }
+    // Delets an unused unindexed iterator to a log
+    fn itr_del(&mut self, log: String, name: String) -> Result<String, Error> {
+        self.manifest.del_itr(log, name)?;
         Ok("ok".to_owned())
     }
 }
@@ -143,6 +149,24 @@ impl Manifest {
 
         Ok(())
     }
+
+    fn del_itr(&mut self, log: String, name: String) -> Result<(), Error> {
+        let entry = self.itrs.entry(name);
+        match entry {
+            Entry::Occupied(e) => {
+                let itr = e.get();
+                if itr.log != log {
+                    return Err(Error::ItrDoesNotExist);
+                }
+                let _ = e.remove();
+            }
+            Entry::Vacant(_e) => {
+                return Err(Error::ItrDoesNotExist);
+            }
+        };
+
+        Ok(())
+    }
 }
 
 /// The Manifest entry for a Log
@@ -164,6 +188,7 @@ struct ItrRegistrant {
 pub enum Error {
     LogDoesNotExist,
     ItrExistsWithSameName,
+    ItrDoesNotExist,
 }
 
 impl From<Error> for Bytes {
@@ -237,6 +262,42 @@ mod tests {
             format!("Err(ItrExistsWithSameName)")
         );
     }
+
+    #[test]
+    fn test_manifest_del_itr() {
+        let mut manifest = Manifest::new();
+        // Normal
+        let _ = manifest.add_itr(
+            "test".to_owned(),
+            "fun".to_owned(),
+            "lua".to_owned(),
+            "func".to_owned(),
+        );
+        assert!(manifest.itrs.contains_key("fun"));
+        let _ = manifest.del_itr("test".to_owned(), "fun".to_owned());
+        assert_eq!(manifest.logs.contains_key("fun"), false);
+
+        // Function doesnt exist log does
+        let does_not_exist_error = manifest.del_itr("test".to_owned(), "fun".to_owned());
+        assert_eq!(
+            format!("{:?}", does_not_exist_error),
+            format!("Err(ItrDoesNotExist)")
+        );
+        // Neither function or log exist
+        let _ = manifest.add_itr(
+            "test".to_owned(),
+            "fun".to_owned(),
+            "lua".to_owned(),
+            "func".to_owned(),
+        );
+
+        let log_does_not_exist_error = manifest.del_itr("test1".to_owned(), "fun".to_owned());
+        assert_eq!(
+            format!("{:?}", log_does_not_exist_error),
+            format!("Err(ItrDoesNotExist)")
+        );
+    }
+
     #[test]
     fn test_db_new() {
         let db = DB::new();
@@ -314,6 +375,22 @@ mod tests {
             .unwrap();
         assert_eq!(out, "ok".to_owned());
         assert_eq!(db.manifest.itrs.len(), 1);
+    }
+    // This test is not needed now. It is a wrapper for manifest.del_iter()
+    #[test]
+    fn test_db_itr_del() {
+        let mut db = DB::new();
+        let _ = db.itr_add(
+            "test".to_owned(),
+            "std_dev avg users".to_owned(),
+            "bf".to_owned(),
+            "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+.".to_owned(),
+        );
+        let out = db
+            .itr_del("test".to_owned(), "std_dev avg users".to_owned())
+            .unwrap();
+        assert_eq!(out, "ok".to_owned());
+        assert_eq!(db.manifest.itrs.len(), 0);
     }
     // This test is not needed now. if any logic other than match is added to exec we would add it here
     #[test]
