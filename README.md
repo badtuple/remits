@@ -1,4 +1,4 @@
-Remits
+Remits  &nbsp;[![Discord](https://img.shields.io/discord/691125113659195474)](https://discord.gg/gSVR24K) 
 ======
 
 Remote Iterator Server
@@ -47,7 +47,7 @@ resume from that spot at a later time.
 ## Contributing
 
 Want to contribute to Remits?
-Feel free to reach out over email or in a github issue and we can find a good place to get started!
+Feel free to jump into [our chat](https://discord.gg/gSVR24K) or open a github issue. We'll be happy to help find a good place to get started!
 Remits is still young, so there's alot of low hanging fruit and definitional work to do.
 
 
