@@ -14,12 +14,12 @@ use super::errors::Error;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Manifest {
     /// List of all existing logs
-    logs: HashMap<String, LogRegistrant>,
+    pub logs: HashMap<String, LogRegistrant>,
 
     /// List of all existing Iters
     /// TODO: Once Iters are built out, store the actual code so they can be
     /// rebuilt.  For now, it's just the identifier.
-    itrs: HashMap<String, ItrRegistrant>,
+    pub itrs: HashMap<String, ItrRegistrant>,
 }
 
 impl Manifest {
@@ -88,17 +88,17 @@ impl Manifest {
 
 /// The Manifest entry for a Log
 #[derive(Debug, PartialEq, Eq)]
-struct LogRegistrant {
-    name: String,
-    created_at: SystemTime,
+pub struct LogRegistrant {
+    pub name: String,
+    pub created_at: SystemTime,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct ItrRegistrant {
-    log: String,
-    name: String,
-    kind: String,
-    func: String,
+pub struct ItrRegistrant {
+    pub log: String,
+    pub name: String,
+    pub kind: String,
+    pub func: String,
 }
 
 #[cfg(test)]
