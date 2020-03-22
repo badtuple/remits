@@ -1,4 +1,6 @@
-use bytes::Bytes;
+mod errors;
+
+use errors::Error;
 use std::str::from_utf8;
 
 pub fn parse(input: &[u8]) -> Result<Command, Error> {
@@ -121,24 +123,6 @@ pub enum Command {
         log: String,
         name: String,
     },
-}
-
-#[derive(Debug)]
-pub enum Error {
-    UnrecognizedCommand,
-    MalformedCommand,
-    NotEnoughArguments,
-
-    LogNameNotUtf8,
-    ItrNameNotUtf8,
-    ItrTypeNotUtf8,
-    ItrFuncNotUtf8,
-}
-
-impl From<Error> for Bytes {
-    fn from(e: Error) -> Self {
-        format!("{:?}", e).into()
-    }
 }
 
 #[cfg(test)]
