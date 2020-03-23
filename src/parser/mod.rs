@@ -10,7 +10,10 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
     if input.len() < 7 {
         return Err(Error::MalformedCommand);
     }
-    let data: Vec<&[u8]> = input.splitn(3, |b| *b == b' ').collect();
+    let mut data: Vec<&[u8]> = input.splitn(3, |b| *b == b' ').collect();
+    if data.len() < 3{
+        data.push("".as_bytes());
+    }
     let cmd_str = from_utf8(data[0]).unwrap().to_owned() + " " + from_utf8(data[1]).unwrap();
     match &*cmd_str {
         "LOG LIST" => Ok(Command::LogList()),
@@ -145,6 +148,9 @@ mod tests {
                 msg: b"testing comment".to_vec(),
             })
         );
+
+        let itr_list_empty_out = parse("ITR LIST".as_bytes());
+        assert_eq!(itr_list_empty_out, Ok(ItrList("".to_owned())));
 
         let itr_list_out = parse("ITR LIST test".as_bytes());
         assert_eq!(itr_list_out, Ok(ItrList("test".to_owned())));

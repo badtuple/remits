@@ -78,6 +78,10 @@ impl DB {
 
     /// List all itrs attached to a log
     fn itr_list(&mut self, name: String) -> Result<String, Error> {
+        if name == ""{
+            let out = self.manifest.itrs.keys().map(|key| format!("{}", key));
+            return Ok(out.collect::<Vec<String>>().join(","));
+        }
         Ok(self
             .manifest
             .itrs
@@ -206,7 +210,7 @@ mod tests {
             .unwrap();
         let _ = db
             .itr_add(
-                "test".to_owned(),
+                "test2".to_owned(),
                 "std_dev avg users2".to_owned(),
                 "bf".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
@@ -215,6 +219,7 @@ mod tests {
             .unwrap();
         let out = db.itr_list("test".to_owned()).unwrap();
         assert!(out.contains("std_dev avg users"));
+        let out = db.itr_list("".to_owned()).unwrap();
         assert!(out.contains("std_dev avg users2"));
     }
     // This test is not needed now. It is a wrapper for manifest.add_iter()
