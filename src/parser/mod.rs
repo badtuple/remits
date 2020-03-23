@@ -18,6 +18,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
         b"MSG ADD " => parse_msg_add(data),
         b"ITR ADD " => parse_itr_add(data),
         b"ITR DEL " => parse_itr_del(data),
+        b"LOG LIST" => Ok(Command::LogList()),
         _ => {
             debug!("{:?}", cmd_str);
             Err(Error::UnrecognizedCommand)
@@ -120,6 +121,9 @@ mod tests {
 
         let undersized_command = parse("2short".as_bytes());
         assert_eq!(undersized_command, Err(MalformedCommand));
+
+        let log_add_out = parse("LOG LIST".as_bytes());
+        assert_eq!(log_add_out, Ok(LogList()));
 
         let log_add_out = parse("LOG ADD test".as_bytes());
         assert_eq!(log_add_out, Ok(LogAdd("test".to_owned())));

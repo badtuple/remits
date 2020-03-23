@@ -43,8 +43,9 @@ impl DB {
     }
 
     /// List all logs in db
-    fn log_list(&mut self, name: String) -> Result<String, Error> {
-        Ok(self.manifest.logs.keys().map(|key| key))
+    fn log_list(&mut self) -> Result<String, Error> {
+        let out =self.manifest.logs.keys().map(|key| format!("{}",key));
+        Ok(out.collect::<Vec<String>>().join(","))
     }
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
@@ -110,6 +111,14 @@ mod tests {
                 logs: HashMap::new()
             }
         );
+    }
+    #[test]
+    fn test_db_log_list() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        let _ = db.log_add("test2".to_owned()).unwrap();
+        let out2 = db.log_list().unwrap();
+        assert_eq!(out2, "test,test2".to_owned());
     }
     #[test]
     fn test_db_log_add() {
