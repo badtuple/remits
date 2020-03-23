@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [ add-coverage-github ]
   pull_request:
     branches: [ master ]
 
@@ -22,4 +22,6 @@ jobs:
     - name: Run server
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
     - name: Run tests
-      run: cargo test
+
+    - name: Run cargo-tarpaulin
+      uses: actions-rs/tarpaulin@v0.1
