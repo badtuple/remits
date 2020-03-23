@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ add-coverage-github ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
