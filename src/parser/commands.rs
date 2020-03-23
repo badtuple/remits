@@ -2,10 +2,15 @@
 pub enum Command {
     LogAdd(String),
     LogDel(String),
+    LogList(),
     MsgAdd {
         log: String,
         msg: Vec<u8>,
     },
+    // MsgCount {
+    //     log: String,
+    // },
+    // ItrList(String),
     ItrAdd {
         log: String,
         name: String,
@@ -19,6 +24,7 @@ pub enum Command {
 }
 
 impl Command {
+    #[cfg(test)] // Adding this to remove lint warnings. Currently only used in tests
     pub fn new_itr_add(log: &str, name: &str, kind: &str, func: &str) -> Self {
         Self::ItrAdd {
             log: log.to_owned(),
@@ -27,7 +33,7 @@ impl Command {
             func: func.to_owned(),
         }
     }
-
+    #[cfg(test)] // Adding this to remove lint warnings. Currently only used in tests
     pub fn new_itr_del(log: &str, name: &str) -> Self {
         Self::ItrDel {
             log: log.to_owned(),

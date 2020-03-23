@@ -30,6 +30,7 @@ impl DB {
         match cmd {
             LogAdd(name) => self.log_add(name),
             LogDel(name) => self.log_del(name),
+            LogList() => self.log_list(),
             MsgAdd { log, msg } => self.msg_add(log, msg),
             ItrAdd {
                 log,
@@ -41,6 +42,10 @@ impl DB {
         }
     }
 
+    /// List all logs in db
+    fn log_list(&mut self, name: String) -> Result<String, Error> {
+        Ok(self.manifest.logs.keys().map(|key| key))
+    }
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
         self.manifest.add_log(name.clone());
