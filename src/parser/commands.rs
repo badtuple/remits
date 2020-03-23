@@ -7,10 +7,7 @@ pub enum Command {
         log: String,
         msg: Vec<u8>,
     },
-    // MsgCount {
-    //     log: String,
-    // },
-    // ItrList(String),
+    ItrList(String),
     ItrAdd {
         log: String,
         name: String,
