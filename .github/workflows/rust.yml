@@ -23,6 +23,5 @@ jobs:
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
     - name: Run tests
       run: cargo test --verbose
-
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
