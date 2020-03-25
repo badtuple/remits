@@ -28,6 +28,7 @@ impl DB {
         use Command::*;
 
         match cmd {
+            LogShow(name) => self.log_show(name),
             LogAdd(name) => self.log_add(name),
             LogDel(name) => self.log_del(name),
             LogList() => self.log_list(),
@@ -47,6 +48,10 @@ impl DB {
     fn log_list(&mut self) -> Result<String, Error> {
         let out = self.manifest.logs.keys().map(|key| format!("{}", key));
         Ok(out.collect::<Vec<String>>().join(","))
+    }
+    /// Adds a new log to the DB
+    fn log_show(&mut self, name: String) -> Result<String, Error> {
+        Ok(format!("{:?}",self.manifest.logs[&name]))
     }
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
@@ -138,6 +143,13 @@ mod tests {
         let out = db.log_list().unwrap();
         assert!(out.contains("test"));
         assert!(out.contains("metric"));
+    }
+    #[test]
+    fn test_db_log_show() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        let out = db.log_show("test".to_owned()).unwrap();
+        assert!(out.contains( "LogRegistrant { name: \"test\", "));
     }
     #[test]
     fn test_db_log_add() {

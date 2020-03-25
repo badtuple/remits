@@ -1,5 +1,6 @@
 #[derive(Debug, Eq, PartialEq)]
 pub enum Command {
+    LogShow(String),
     LogAdd(String),
     LogDel(String),
     LogList(),

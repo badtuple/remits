@@ -96,6 +96,7 @@ much a work in progress and flexible as the project proceeds:
 
 Command                                             | Description
 ----------------------------------------------------|----------------
+`LOG SHOW <log name>`                                | Show metadata of a log
 `LOG ADD <log name>`                                | Create a new Log
 `LOG DEL <log name>`                                | Delete a Log
 `LOG LIST`                                | List all logs

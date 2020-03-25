@@ -19,6 +19,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
         "LOG LIST" => Ok(Command::LogList()),
         "LOG ADD" => parse_log_add(data[2]),
         "LOG DEL" => parse_log_del(data[2]),
+        "LOG SHOW" => parse_log_show(data[2]),
         "MSG ADD" => parse_msg_add(data[2]),
         "ITR LIST" => parse_itr_list(data[2]),
         "ITR ADD" => parse_itr_add(data[2]),
@@ -40,6 +41,13 @@ fn parse_log_add(data: &[u8]) -> Result<Command, Error> {
 fn parse_log_del(data: &[u8]) -> Result<Command, Error> {
     match from_utf8(data) {
         Ok(s) => Ok(Command::LogDel(s.to_owned())),
+        Err(_) => Err(Error::LogNameNotUtf8),
+    }
+}
+
+fn parse_log_show(data: &[u8]) -> Result<Command, Error> {
+    match from_utf8(data) {
+        Ok(s) => Ok(Command::LogShow(s.to_owned())),
         Err(_) => Err(Error::LogNameNotUtf8),
     }
 }
@@ -133,6 +141,9 @@ mod tests {
 
         let log_list_out = parse("LOG LIST".as_bytes());
         assert_eq!(log_list_out, Ok(LogList()));
+
+        let log_show_out = parse("LOG SHOW test".as_bytes());
+        assert_eq!(log_show_out, Ok(LogShow("test".to_owned())));
 
         let log_add_out = parse("LOG ADD test".as_bytes());
         assert_eq!(log_add_out, Ok(LogAdd("test".to_owned())));
