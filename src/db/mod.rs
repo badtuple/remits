@@ -28,8 +28,11 @@ impl DB {
         use Command::*;
 
         match cmd {
+            LogShow(name) => self.log_show(name),
             LogAdd(name) => self.log_add(name),
             LogDel(name) => self.log_del(name),
+            LogList() => self.log_list(),
+            ItrList(name) => self.itr_list(name),
             MsgAdd { log, msg } => self.msg_add(log, msg),
             ItrAdd {
                 log,
@@ -41,6 +44,15 @@ impl DB {
         }
     }
 
+    /// List all logs in db
+    fn log_list(&mut self) -> Result<String, Error> {
+        let out = self.manifest.logs.keys().map(|key| format!("{}", key));
+        Ok(out.collect::<Vec<String>>().join(","))
+    }
+    /// Adds a new log to the DB
+    fn log_show(&mut self, name: String) -> Result<String, Error> {
+        Ok(format!("{:?}",self.manifest.logs[&name]))
+    }
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
         self.manifest.add_log(name.clone());
@@ -67,6 +79,23 @@ impl DB {
             }
             None => Err(Error::LogDoesNotExist),
         }
+    }
+
+    /// List all itrs attached to a log
+    fn itr_list(&mut self, name: String) -> Result<String, Error> {
+        if name == ""{
+            let out = self.manifest.itrs.keys().map(|key| format!("{}", key));
+            return Ok(out.collect::<Vec<String>>().join(","));
+        }
+        Ok(self
+            .manifest
+            .itrs
+            .iter()
+            .filter(|(_, itr)| itr.log == name)
+            .map(|(_, x)| x.name.clone())
+            .map(|itr| format!("{}", itr))
+            .collect::<Vec<String>>()
+            .join(","))
     }
 
     /// Adds a new unindexed iterator to a log
@@ -105,6 +134,22 @@ mod tests {
                 logs: HashMap::new()
             }
         );
+    }
+    #[test]
+    fn test_db_log_list() {
+        let mut db = DB::new();
+        let _ = db.log_add("metric".to_owned()).unwrap();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        let out = db.log_list().unwrap();
+        assert!(out.contains("test"));
+        assert!(out.contains("metric"));
+    }
+    #[test]
+    fn test_db_log_show() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        let out = db.log_show("test".to_owned()).unwrap();
+        assert!(out.contains( "LogRegistrant { name: \"test\", "));
     }
     #[test]
     fn test_db_log_add() {
@@ -161,6 +206,33 @@ mod tests {
         // Never existed
         let out = db.log_del("test1".to_owned()).unwrap();
         assert_eq!(out, "ok".to_owned());
+    }
+    #[test]
+    fn test_db_itr_list() {
+        let mut db = DB::new();
+        let _ = db.log_add("test".to_owned()).unwrap();
+        let _ = db
+            .itr_add(
+                "test".to_owned(),
+                "std_dev avg users".to_owned(),
+                "bf".to_owned(),
+                "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
+                    .to_owned(),
+            )
+            .unwrap();
+        let _ = db
+            .itr_add(
+                "test2".to_owned(),
+                "std_dev avg users2".to_owned(),
+                "bf".to_owned(),
+                "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
+                    .to_owned(),
+            )
+            .unwrap();
+        let out = db.itr_list("test".to_owned()).unwrap();
+        assert!(out.contains("std_dev avg users"));
+        let out = db.itr_list("".to_owned()).unwrap();
+        assert!(out.contains("std_dev avg users2"));
     }
     // This test is not needed now. It is a wrapper for manifest.add_iter()
     #[test]
