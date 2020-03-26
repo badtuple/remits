@@ -51,7 +51,7 @@ impl DB {
     }
     /// Adds a new log to the DB
     fn log_show(&mut self, name: String) -> Result<String, Error> {
-        Ok(format!("{:?}",self.manifest.logs[&name]))
+        Ok(format!("{:?}", self.manifest.logs[&name]))
     }
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
@@ -83,7 +83,7 @@ impl DB {
 
     /// List all itrs attached to a log
     fn itr_list(&mut self, name: String) -> Result<String, Error> {
-        if name == ""{
+        if name == "" {
             let out = self.manifest.itrs.keys().map(|key| format!("{}", key));
             return Ok(out.collect::<Vec<String>>().join(","));
         }
@@ -149,7 +149,7 @@ mod tests {
         let mut db = DB::new();
         let _ = db.log_add("test".to_owned()).unwrap();
         let out = db.log_show("test".to_owned()).unwrap();
-        assert!(out.contains( "LogRegistrant { name: \"test\", "));
+        assert!(out.contains("LogRegistrant { name: \"test\", "));
     }
     #[test]
     fn test_db_log_add() {

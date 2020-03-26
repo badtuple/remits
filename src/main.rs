@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate log;
 
+use argh::FromArgs;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
-
 use tokio::net::{TcpListener, TcpStream};
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
@@ -13,6 +14,22 @@ use futures::SinkExt;
 mod db;
 mod parser;
 
+#[derive(Debug, Serialize, Deserialize, FromArgs)]
+/// Top level config
+struct RemitsConfig {
+    #[argh(option, short = 'p', default = "\"4242\".to_owned()")]
+    /// what port to start remits on
+    pub port: String,
+}
+
+/// `RemitsConfig` implements `Default`
+impl ::std::default::Default for RemitsConfig {
+    fn default() -> Self {
+        Self {
+            port: "4242".into(),
+        }
+    }
+}
 fn setup_logger() {
     use env_logger::{Builder, Target};
     use log::LevelFilter;
@@ -66,12 +83,13 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     setup_logger();
-
+    let mut cfg: RemitsConfig = confy::load("remits")?;
+    cfg = argh::from_env();
     info!("starting server");
 
     let db = Arc::new(Mutex::new(db::DB::new()));
 
-    let addr = "0.0.0.0:4242".to_owned();
+    let addr = "0.0.0.0:".to_owned() + &cfg.port;
     let mut listener = TcpListener::bind(&addr).await?;
     info!("listening on {}", addr);
 
