@@ -16,4 +16,4 @@ jobs:
     - name: Build
       run: cargo build --bin remits --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --bin --verbose
