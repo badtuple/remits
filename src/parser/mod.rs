@@ -10,7 +10,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
     if input.len() < 7 {
         return Err(Error::MalformedCommand);
     }
-    let mut data: Vec<&[u8]> = input.splitn(3, |b| *b == b' ').collect();
+    let mut data: Vec<&[u8]> = input.splitn(3, on_space).collect();
     if data.len() < 3 {
         data.push("".as_bytes());
     }
@@ -24,6 +24,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
         "ITR LIST" => parse_itr_list(data[2]),
         "ITR ADD" => parse_itr_add(data[2]),
         "ITR DEL" => parse_itr_del(data[2]),
+        "ITR NEXT" => parse_itr_next(data[2]),
         _ => {
             debug!("{:?}", cmd_str);
             Err(Error::UnrecognizedCommand)
@@ -53,7 +54,7 @@ fn parse_log_show(data: &[u8]) -> Result<Command, Error> {
 }
 
 fn parse_msg_add(data: &[u8]) -> Result<Command, Error> {
-    let parts: Vec<&[u8]> = data.splitn(2, |b| *b == b' ').collect();
+    let parts: Vec<&[u8]> = data.splitn(2, on_space).collect();
     match &*parts {
         [log_u8, msg] => match from_utf8(log_u8) {
             Ok(log) => Ok(Command::MsgAdd {
@@ -72,7 +73,7 @@ fn parse_itr_list(data: &[u8]) -> Result<Command, Error> {
     }
 }
 fn parse_itr_add(data: &[u8]) -> Result<Command, Error> {
-    let parts: Vec<&[u8]> = data.splitn(4, |b| *b == b' ').collect();
+    let parts: Vec<&[u8]> = data.splitn(4, on_space).collect();
     match &*parts {
         [raw_log, raw_itr, raw_kind, raw_func] => {
             let log = match from_utf8(raw_log) {
@@ -86,9 +87,13 @@ fn parse_itr_add(data: &[u8]) -> Result<Command, Error> {
             };
 
             let kind = match from_utf8(raw_kind) {
-                Ok(kind) => kind.to_owned(),
+                Ok(kind) => kind.to_owned().to_lowercase(),
                 Err(_) => return Err(Error::ItrTypeNotUtf8),
             };
+
+            if kind != "map" && kind != "filter" && kind != "reduce" {
+                return Err(Error::ItrTypeInvalid);
+            }
 
             let func = match from_utf8(raw_func) {
                 Ok(f) => f.to_owned(),
@@ -106,7 +111,7 @@ fn parse_itr_add(data: &[u8]) -> Result<Command, Error> {
     }
 }
 fn parse_itr_del(data: &[u8]) -> Result<Command, Error> {
-    let parts: Vec<&[u8]> = data.splitn(2, |b| *b == b' ').collect();
+    let parts: Vec<&[u8]> = data.splitn(2, on_space).collect();
     match &*parts {
         [raw_log, raw_itr] => {
             let log = match from_utf8(raw_log) {
@@ -123,6 +128,50 @@ fn parse_itr_del(data: &[u8]) -> Result<Command, Error> {
         }
         _ => Err(Error::NotEnoughArguments),
     }
+}
+
+fn parse_itr_next(data: &[u8]) -> Result<Command, Error> {
+    let parts: Vec<&[u8]> = data.splitn(3, on_space).collect();
+    match &*parts {
+        [raw_name, raw_msg_id, raw_count] => {
+            let name = match from_utf8(raw_name) {
+                Ok(itr) => itr.to_owned(),
+                Err(_) => return Err(Error::ItrNameNotUtf8),
+            };
+
+            let msg_id_str = match from_utf8(raw_msg_id) {
+                Ok(msg_id) => msg_id,
+                Err(_) => return Err(Error::MsgIdNotNumber),
+            };
+
+            let msg_id: usize = match msg_id_str.parse() {
+                Ok(msg_id) => msg_id,
+                Err(_) => return Err(Error::MsgIdNotNumber),
+            };
+
+            let count_str = match from_utf8(raw_count) {
+                Ok(count) => count,
+                Err(_) => return Err(Error::MsgIdNotNumber),
+            };
+
+            let count: usize = match count_str.parse() {
+                Ok(count) => count,
+                Err(_) => return Err(Error::MsgIdNotNumber),
+            };
+
+            Ok(Command::ItrNext {
+                name,
+                msg_id,
+                count,
+            })
+        }
+
+        _ => Err(Error::NotEnoughArguments),
+    }
+}
+
+fn on_space(b: &u8) -> bool {
+    *b == b' '
 }
 
 #[cfg(test)]

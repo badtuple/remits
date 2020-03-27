@@ -1,4 +1,6 @@
 mod errors;
+mod iters;
+mod logs;
 mod manifest;
 
 use std::collections::hash_map::Entry;
@@ -6,6 +8,7 @@ use std::collections::HashMap;
 
 use crate::parser::Command;
 use errors::Error;
+use logs::Log;
 use manifest::Manifest;
 
 // Temporarily, everything will be done in memory until we're happy with the
@@ -41,6 +44,20 @@ impl DB {
                 func,
             } => self.itr_add(log, name, kind, func),
             ItrDel { log, name } => self.itr_del(log, name),
+            ItrNext {
+                name,
+                msg_id,
+                count,
+            } => {
+                // TODO: This returns a Vec<Vec<u8>> in the happy path.
+                // But right now, other commands only return String types.
+                // For now, I'm not going to return the data.
+                // We'll need to do that as part of the protocol work.
+                match self.itr_next(name, msg_id, count) {
+                    Ok(_data) => Ok("temporary placeholder for data".to_owned()),
+                    Err(e) => Err(e),
+                }
+            },
         }
     }
 
@@ -56,7 +73,7 @@ impl DB {
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
         self.manifest.add_log(name.clone());
-        self.logs.entry(name).or_insert_with(|| vec![]);
+        self.logs.entry(name).or_insert_with(Log::new);
         Ok("ok".to_owned())
     }
 
@@ -74,7 +91,7 @@ impl DB {
     fn msg_add(&mut self, log: String, msg: Vec<u8>) -> Result<String, Error> {
         match self.logs.get_mut(&log) {
             Some(l) => {
-                l.push(msg);
+                l.add_msg(msg)?;
                 Ok("ok".to_owned())
             }
             None => Err(Error::LogDoesNotExist),
@@ -114,9 +131,21 @@ impl DB {
         self.manifest.del_itr(log, name)?;
         Ok("ok".to_owned())
     }
-}
 
-type Log = Vec<Vec<u8>>;
+    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Result<Vec<Vec<u8>>, Error> {
+        let itr = match self.manifest.itrs.get(&name) {
+            Some(itr) => itr,
+            None => return Err(Error::ItrDoesNotExist),
+        };
+
+        let log = match self.logs.get(&itr.log) {
+            Some(log) => log,
+            None => return Err(Error::LogDoesNotExist),
+        };
+
+        Ok(itr.next(log, msg_id, count))
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -192,7 +221,7 @@ mod tests {
         let _ = db.manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         assert_eq!(db.manifest.logs.len(), 1);
@@ -215,7 +244,7 @@ mod tests {
             .itr_add(
                 "test".to_owned(),
                 "std_dev avg users".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -224,7 +253,7 @@ mod tests {
             .itr_add(
                 "test2".to_owned(),
                 "std_dev avg users2".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -242,7 +271,7 @@ mod tests {
             .itr_add(
                 "test".to_owned(),
                 "std_dev avg users".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -257,7 +286,7 @@ mod tests {
         let _ = db.itr_add(
             "test".to_owned(),
             "std_dev avg users".to_owned(),
-            "bf".to_owned(),
+            "map".to_owned(),
             "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+.".to_owned(),
         );
         let out = db
