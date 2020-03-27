@@ -1,3 +1,5 @@
+use super::logs::Log;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Itr {
     pub log: String,
@@ -6,7 +8,13 @@ pub struct Itr {
     pub kind: ItrKind,
 }
 
-impl Itr {}
+impl Itr {
+    pub fn next(&self, log: &Log, offset: usize, count: usize) -> Vec<Vec<u8>> {
+        // TODO: this will panic if count is out of bounds.
+        // Implement `get` on Log and return None if nothing exists.
+        (0..count).map(|i| log[offset + i].clone()).collect()
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ItrKind {

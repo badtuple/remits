@@ -48,7 +48,16 @@ impl DB {
                 name,
                 msg_id,
                 count,
-            } => self.itr_next(name, msg_id, count),
+            } => {
+                // TODO: This returns a Vec<Vec<u8>> in the happy path.
+                // But right now, other commands only return String types.
+                // For now, I'm not going to return the data.
+                // We'll need to do that as part of the protocol work.
+                match self.itr_next(name, msg_id, count) {
+                    Ok(_data) => Ok("temporary placeholder for data".to_owned()),
+                    Err(e) => Err(e),
+                }
+            },
         }
     }
 
@@ -123,8 +132,18 @@ impl DB {
         Ok("ok".to_owned())
     }
 
-    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Result<String, Error> {
-        unimplemented!();
+    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Result<Vec<Vec<u8>>, Error> {
+        let itr = match self.manifest.itrs.get(&name) {
+            Some(itr) => itr,
+            None => return Err(Error::ItrDoesNotExist),
+        };
+
+        let log = match self.logs.get(&itr.log) {
+            Some(log) => log,
+            None => return Err(Error::LogDoesNotExist),
+        };
+
+        Ok(itr.next(log, msg_id, count))
     }
 }
 
