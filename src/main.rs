@@ -72,14 +72,13 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
                 let mut buf = BytesMut::from("+");
                 buf.extend_from_slice(res.as_bytes());
                 buf
-            },
+            }
             Err(e) => {
                 let mut buf = BytesMut::from("!");
-                let vec: Vec<u8>= e.into();
+                let vec: Vec<u8> = e.into();
                 buf.extend_from_slice(&vec);
                 buf
-
-            },
+            }
         };
 
         debug!("responding with: {:?}", resp);

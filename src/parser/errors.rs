@@ -14,6 +14,6 @@ pub enum Error {
 
 impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
-        format!("err {:?}", e).into()
+        format!("!{:?}", e).into()
     }
 }

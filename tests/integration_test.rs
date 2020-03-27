@@ -1,5 +1,4 @@
 /// All tests in this folder assume a server running on localhost:4242
-
 use futures::SinkExt;
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;

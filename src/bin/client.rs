@@ -39,7 +39,26 @@ async fn main() {
         match framer.send(input.into()).await {
             Ok(_) => {
                 match framer.next().await {
-                    Some(result) => println!("{:?}", result.unwrap_or_else(|_| "".into())),
+                    Some(result) => {
+                        let res = format!("{:?}", result.unwrap_or_else(|_| "".into()));
+                        if res.chars().next().unwrap() == '!' {
+                            println!(
+                                "Error {}",
+                                res.char_indices()
+                                    .nth(1)
+                                    .and_then(|(i, _)| res.get(i..))
+                                    .unwrap_or("")
+                            )
+                        } else {
+                            println!(
+                                "{}",
+                                res.char_indices()
+                                    .nth(1)
+                                    .and_then(|(i, _)| res.get(i..))
+                                    .unwrap_or("")
+                            )
+                        }
+                    }
                     None => eprintln!("no response from remits"),
                 };
             }
