@@ -1,4 +1,5 @@
 mod errors;
+mod logs;
 mod manifest;
 
 use std::collections::hash_map::Entry;
@@ -6,6 +7,7 @@ use std::collections::HashMap;
 
 use crate::parser::Command;
 use errors::Error;
+use logs::Log;
 use manifest::Manifest;
 
 // Temporarily, everything will be done in memory until we're happy with the
@@ -56,7 +58,7 @@ impl DB {
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
         self.manifest.add_log(name.clone());
-        self.logs.entry(name).or_insert_with(|| vec![]);
+        self.logs.entry(name).or_insert_with(Log::new);
         Ok("ok".to_owned())
     }
 
@@ -74,7 +76,7 @@ impl DB {
     fn msg_add(&mut self, log: String, msg: Vec<u8>) -> Result<String, Error> {
         match self.logs.get_mut(&log) {
             Some(l) => {
-                l.push(msg);
+                l.add_msg(msg)?;
                 Ok("ok".to_owned())
             }
             None => Err(Error::LogDoesNotExist),
@@ -115,8 +117,6 @@ impl DB {
         Ok("ok".to_owned())
     }
 }
-
-type Log = Vec<Vec<u8>>;
 
 #[cfg(test)]
 mod tests {

@@ -100,9 +100,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             Err(e) => error!("error accepting listener: {}", e),
         }
-
-        // Temporary full-state debugging for very early protocol dev.
-        // Will need to get extensive integration testing up asap.
-        debug!("{:?}", db);
     }
 }
