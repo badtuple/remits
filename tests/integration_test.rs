@@ -42,15 +42,15 @@ async fn test_can_connect_to_server() {
 #[tokio::test]
 async fn test_can_create_log() {
     let mut framer = connect_to_remits().await;
-    should_respond_with!(framer, "LOG ADD test_log", b"ok");
+    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
 
     // second create should be a noop, but still respond with "ok"
-    should_respond_with!(framer, "LOG ADD test_log", b"ok");
+    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
 }
 
 #[tokio::test]
 async fn test_can_create_itr() {
     let mut framer = connect_to_remits().await;
     let itr_cmd = "ITR ADD test_log test_itr \n return msg";
-    should_respond_with!(framer, itr_cmd, b"ok");
+    should_respond_with!(framer, itr_cmd, b"+ok");
 }

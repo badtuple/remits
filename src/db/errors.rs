@@ -9,12 +9,12 @@ pub enum Error {
 
 impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
-        format!("err {:?}", e).into()
+        format!("! {:?}", e).into()
     }
 }
 impl From<Error> for Vec<u8> {
     fn from(e: Error) -> Self {
-        let output: String = format!("err {:?}", e).into();
+        let output: String = format!("! {:?}", e).into();
         output.as_bytes().to_vec()
     }
 }
