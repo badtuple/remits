@@ -86,9 +86,13 @@ fn parse_itr_add(data: &[u8]) -> Result<Command, Error> {
             };
 
             let kind = match from_utf8(raw_kind) {
-                Ok(kind) => kind.to_owned(),
+                Ok(kind) => kind.to_owned().to_lowercase(),
                 Err(_) => return Err(Error::ItrTypeNotUtf8),
             };
+
+            if kind != "map" && kind != "filter" && kind != "reduce" {
+                return Err(Error::ItrTypeInvalid);
+            }
 
             let func = match from_utf8(raw_func) {
                 Ok(f) => f.to_owned(),

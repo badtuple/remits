@@ -10,6 +10,8 @@ pub enum Error {
     ItrNameNotUtf8,
     ItrTypeNotUtf8,
     ItrFuncNotUtf8,
+
+    ItrTypeInvalid,
 }
 
 impl From<Error> for Bytes {

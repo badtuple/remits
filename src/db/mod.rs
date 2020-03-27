@@ -1,4 +1,5 @@
 mod errors;
+mod iters;
 mod logs;
 mod manifest;
 
@@ -192,7 +193,7 @@ mod tests {
         let _ = db.manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         assert_eq!(db.manifest.logs.len(), 1);
@@ -215,7 +216,7 @@ mod tests {
             .itr_add(
                 "test".to_owned(),
                 "std_dev avg users".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -224,7 +225,7 @@ mod tests {
             .itr_add(
                 "test2".to_owned(),
                 "std_dev avg users2".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -242,7 +243,7 @@ mod tests {
             .itr_add(
                 "test".to_owned(),
                 "std_dev avg users".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -257,7 +258,7 @@ mod tests {
         let _ = db.itr_add(
             "test".to_owned(),
             "std_dev avg users".to_owned(),
-            "bf".to_owned(),
+            "map".to_owned(),
             "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+.".to_owned(),
         );
         let out = db
