@@ -1,4 +1,5 @@
 mod errors;
+mod iters;
 mod logs;
 mod manifest;
 
@@ -43,6 +44,20 @@ impl DB {
                 func,
             } => self.itr_add(log, name, kind, func),
             ItrDel { log, name } => self.itr_del(log, name),
+            ItrNext {
+                name,
+                msg_id,
+                count,
+            } => {
+                // TODO: This returns a Vec<Vec<u8>> in the happy path.
+                // But right now, other commands only return String types.
+                // For now, I'm not going to return the data.
+                // We'll need to do that as part of the protocol work.
+                match self.itr_next(name, msg_id, count) {
+                    Ok(_data) => Ok("temporary placeholder for data".to_owned()),
+                    Err(e) => Err(e),
+                }
+            },
         }
     }
 
@@ -115,6 +130,20 @@ impl DB {
     fn itr_del(&mut self, log: String, name: String) -> Result<String, Error> {
         self.manifest.del_itr(log, name)?;
         Ok("ok".to_owned())
+    }
+
+    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Result<Vec<Vec<u8>>, Error> {
+        let itr = match self.manifest.itrs.get(&name) {
+            Some(itr) => itr,
+            None => return Err(Error::ItrDoesNotExist),
+        };
+
+        let log = match self.logs.get(&itr.log) {
+            Some(log) => log,
+            None => return Err(Error::LogDoesNotExist),
+        };
+
+        Ok(itr.next(log, msg_id, count))
     }
 }
 
@@ -192,7 +221,7 @@ mod tests {
         let _ = db.manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         assert_eq!(db.manifest.logs.len(), 1);
@@ -215,7 +244,7 @@ mod tests {
             .itr_add(
                 "test".to_owned(),
                 "std_dev avg users".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -224,7 +253,7 @@ mod tests {
             .itr_add(
                 "test2".to_owned(),
                 "std_dev avg users2".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -242,7 +271,7 @@ mod tests {
             .itr_add(
                 "test".to_owned(),
                 "std_dev avg users".to_owned(),
-                "bf".to_owned(),
+                "map".to_owned(),
                 "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
                     .to_owned(),
             )
@@ -257,7 +286,7 @@ mod tests {
         let _ = db.itr_add(
             "test".to_owned(),
             "std_dev avg users".to_owned(),
-            "bf".to_owned(),
+            "map".to_owned(),
             "+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+.".to_owned(),
         );
         let out = db

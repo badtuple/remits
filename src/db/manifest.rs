@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use super::errors::Error;
+use super::iters::{string_to_kind_unchecked, Itr};
 
 /// The Manifest is a file at the root of the database directory that is used
 /// as a registry for database constructs such as Logs and Iters. It will map
@@ -13,13 +14,8 @@ use super::errors::Error;
 /// until we are happy with the interface.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Manifest {
-    /// List of all existing logs
     pub logs: HashMap<String, LogRegistrant>,
-
-    /// List of all existing Iters
-    /// TODO: Once Iters are built out, store the actual code so they can be
-    /// rebuilt.  For now, it's just the identifier.
-    pub itrs: HashMap<String, ItrRegistrant>,
+    pub itrs: HashMap<String, Itr>,
 }
 
 impl Manifest {
@@ -59,21 +55,23 @@ impl Manifest {
         kind: String,
         func: String,
     ) -> Result<(), Error> {
-        let entry = self.itrs.entry(name.clone());
+        let itr = Itr {
+            log,
+            name: name.clone(),
+            kind: string_to_kind_unchecked(kind),
+            func,
+        };
+
+        let entry = self.itrs.entry(name);
         match entry {
             Entry::Occupied(e) => {
-                let itr = e.get();
-                if itr.log != log || itr.kind != kind || itr.func != func {
+                let stored_itr = e.get();
+                if *stored_itr != itr {
                     return Err(Error::ItrExistsWithSameName);
-                }
+                };
             }
             Entry::Vacant(e) => {
-                e.insert(ItrRegistrant {
-                    log,
-                    name,
-                    kind,
-                    func,
-                });
+                e.insert(itr);
             }
         };
 
@@ -148,19 +146,19 @@ mod tests {
         let _ = manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         let _ = manifest.add_itr(
             "test".to_owned(),
             "fun2".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         let _ = manifest.add_itr(
             "test".to_owned(),
             "fun3".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         assert!(manifest.itrs.contains_key("fun"));
@@ -171,7 +169,7 @@ mod tests {
         let duplicate_error = manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func2".to_owned(),
         );
         assert_eq!(
@@ -187,7 +185,7 @@ mod tests {
         let _ = manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
         assert!(manifest.itrs.contains_key("fun"));
@@ -204,7 +202,7 @@ mod tests {
         let _ = manifest.add_itr(
             "test".to_owned(),
             "fun".to_owned(),
-            "lua".to_owned(),
+            "map".to_owned(),
             "func".to_owned(),
         );
 

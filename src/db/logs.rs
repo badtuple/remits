@@ -45,7 +45,7 @@ mod tests {
     #[test]
     fn test_add_invalid_messagepack_msg() {
         let mut log = Log::new();
-        let buf = vec![ 0x93, 0x00, 0x2a ];
+        let buf = vec![0x93, 0x00, 0x2a];
         if let Ok(_) = log.add_msg(buf) {
             panic!("invalid messagepack was allowed into log");
         };
