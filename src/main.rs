@@ -75,7 +75,8 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
             },
             Err(e) => {
                 let mut buf = BytesMut::from("!");
-                buf.extend_from_slice(e.into());
+                let vec: Vec<u8>= e.into();
+                buf.extend_from_slice(&vec);
                 buf
 
             },

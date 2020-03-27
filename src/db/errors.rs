@@ -1,3 +1,5 @@
+use bytes::Bytes;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     LogDoesNotExist,
@@ -5,8 +7,14 @@ pub enum Error {
     ItrDoesNotExist,
 }
 
-impl From<Error> for &[u8] {
+impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
-        format!("err {:?}", e).as_bytes().clone()
+        format!("err {:?}", e).into()
+    }
+}
+impl From<Error> for Vec<u8> {
+    fn from(e: Error) -> Self {
+        let output: String = format!("err {:?}", e).into();
+        output.as_bytes().to_vec()
     }
 }
