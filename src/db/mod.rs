@@ -44,6 +44,11 @@ impl DB {
                 func,
             } => self.itr_add(log, name, kind, func),
             ItrDel { log, name } => self.itr_del(log, name),
+            ItrNext {
+                name,
+                msg_id,
+                count,
+            } => self.itr_next(name, msg_id, count),
         }
     }
 
@@ -116,6 +121,10 @@ impl DB {
     fn itr_del(&mut self, log: String, name: String) -> Result<String, Error> {
         self.manifest.del_itr(log, name)?;
         Ok("ok".to_owned())
+    }
+
+    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Result<String, Error> {
+        unimplemented!();
     }
 }
 
