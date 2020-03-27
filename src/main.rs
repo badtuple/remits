@@ -14,19 +14,34 @@ use futures::SinkExt;
 mod db;
 mod parser;
 
-#[derive(Debug, Serialize, Deserialize, FromArgs)]
+#[derive(Clone, Debug, Serialize, Deserialize, FromArgs)]
 /// Top level config
 struct RemitsConfig {
-    #[argh(option, short = 'p', default = "\"4242\".to_owned()")]
+    #[argh(option, short = 'p')]
     /// what port to start remits on
-    pub port: String,
+    pub port: Option<String>,
+    #[argh(option, short = 'c')]
+    /// show color in logs
+    pub color: Option<bool>,
 }
 
+impl RemitsConfig {
+    fn update_from_flags(&mut self) {
+        let flags: RemitsConfig = argh::from_env();
+        if flags.port.is_some() {
+            self.port = flags.port;
+        }
+        if flags.color.is_some() {
+            self.color = flags.color;
+        }
+    }
+}
 /// `RemitsConfig` implements `Default`
 impl ::std::default::Default for RemitsConfig {
     fn default() -> Self {
         Self {
-            port: "4242".into(),
+            port: Some("4242".into()),
+            color: Some(true),
         }
     }
 }
@@ -83,13 +98,15 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     setup_logger();
+
     let mut cfg: RemitsConfig = confy::load("remits")?;
-    cfg = argh::from_env();
+    cfg.update_from_flags();
+
     info!("starting server");
 
     let db = Arc::new(Mutex::new(db::DB::new()));
 
-    let addr = "0.0.0.0:".to_owned() + &cfg.port;
+    let addr = "0.0.0.0:".to_owned() + &cfg.port.expect("No port defined");
     let mut listener = TcpListener::bind(&addr).await?;
     info!("listening on {}", addr);
 

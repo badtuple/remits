@@ -12,7 +12,7 @@ pub fn parse(input: &[u8]) -> Result<Command, Error> {
     }
     let mut data: Vec<&[u8]> = input.splitn(3, |b| *b == b' ').collect();
     if data.len() < 3 {
-        data.push("".as_bytes());
+        data.push(b"");
     }
     let cmd_str = from_utf8(data[0]).unwrap().to_owned() + " " + from_utf8(data[1]).unwrap();
     match &*cmd_str {
