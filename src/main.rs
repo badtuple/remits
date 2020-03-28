@@ -33,9 +33,7 @@ macro_rules! format_response {
                 out.into()
             }
             Err(e) => {
-                let mut out: BytesMut = BytesMut::from("!");
-                out.extend_from_slice(&Bytes::from(e));
-                out.into()
+                format_error_response!(e)
             }
         }
     }};
