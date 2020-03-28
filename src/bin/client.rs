@@ -1,7 +1,7 @@
+use colored::*;
+use futures::SinkExt;
 use std::io;
 use std::io::Write;
-
-use futures::SinkExt;
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
@@ -39,7 +39,18 @@ async fn main() {
         match framer.send(input.into()).await {
             Ok(_) => {
                 match framer.next().await {
-                    Some(result) => println!("{:?}", result.unwrap_or_else(|_| "".into())),
+                    Some(result) => {
+                        let output_str = &result.unwrap_or_else(|_| "".into());
+                        let output = std::str::from_utf8(output_str).unwrap();
+                        let res = format!("{:?}", output);
+                        if res.chars().nth(1).unwrap() == '!' {
+                            let formated_string = &res.to_string()[2..res.len() -1];
+                            println!("{} {}", "Error".red(),formated_string)
+                        } else {
+                            let formated_string = &res.to_string()[2..res.len() -1];
+                            println!("{} {}", "Success".green(),formated_string)
+                        }
+                    }
                     None => eprintln!("no response from remits"),
                 };
             }
