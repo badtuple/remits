@@ -2,6 +2,7 @@
 extern crate log;
 
 use argh::FromArgs;
+use bytes::BytesMut;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
@@ -75,12 +76,21 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
 
         let out = db.lock().unwrap().exec(cmd);
         let resp = match out {
-            Ok(res) => res.into(),
-            Err(e) => e.into(),
+            Ok(res) => {
+                let mut buf = BytesMut::from("+");
+                buf.extend_from_slice(res.as_bytes());
+                buf
+            }
+            Err(e) => {
+                let mut buf = BytesMut::from("!");
+                let vec: Vec<u8> = e.into();
+                buf.extend_from_slice(&vec);
+                buf
+            }
         };
 
         debug!("responding with: {:?}", resp);
-        if let Err(e) = framer.send(resp).await {
+        if let Err(e) = framer.send(resp.freeze()).await {
             error!("could not respond: {}", e);
         }
     }
@@ -110,9 +120,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             Err(e) => error!("error accepting listener: {}", e),
         }
-
-        // Temporary full-state debugging for very early protocol dev.
-        // Will need to get extensive integration testing up asap.
-        debug!("{:?}", db);
     }
 }

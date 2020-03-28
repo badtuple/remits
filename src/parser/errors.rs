@@ -10,10 +10,12 @@ pub enum Error {
     ItrNameNotUtf8,
     ItrTypeNotUtf8,
     ItrFuncNotUtf8,
+    ItrTypeInvalid,
+    MsgIdNotNumber,
 }
 
 impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
-        format!("err {:?}", e).into()
+        format!("!{:?}", e).into()
     }
 }

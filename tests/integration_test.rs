@@ -1,5 +1,4 @@
 /// All tests in this folder assume a server running on localhost:4242
-
 use futures::SinkExt;
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
@@ -42,15 +41,25 @@ async fn test_can_connect_to_server() {
 #[tokio::test]
 async fn test_can_create_log() {
     let mut framer = connect_to_remits().await;
-    should_respond_with!(framer, "LOG ADD test_log", b"ok");
+    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
 
     // second create should be a noop, but still respond with "ok"
-    should_respond_with!(framer, "LOG ADD test_log", b"ok");
+    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
 }
 
 #[tokio::test]
 async fn test_can_create_itr() {
     let mut framer = connect_to_remits().await;
     let itr_cmd = "ITR ADD test_log test_itr \n return msg";
-    should_respond_with!(framer, itr_cmd, b"ok");
+    should_respond_with!(framer, itr_cmd, b"+ok");
+}
+
+#[tokio::test]
+async fn test_malformed_msg_add() {
+    let mut framer = connect_to_remits().await;
+    should_respond_with!(framer, "LOG ADD test_log", b"ok");
+
+    // Not valid message pack
+    let msg_cmd = b"MSG ADD test_log \x93\x00\x2a".to_vec();
+    should_respond_with!(framer, msg_cmd, b"err MsgNotValidMessagePack");
 }
