@@ -57,7 +57,7 @@ impl DB {
                     Ok(_data) => Ok("temporary placeholder for data".to_owned()),
                     Err(e) => Err(e),
                 }
-            },
+            }
         }
     }
 
@@ -131,7 +131,12 @@ impl DB {
         Ok("ok".to_owned())
     }
 
-    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Result<Vec<Vec<u8>>, Error> {
+    fn itr_next(
+        &mut self,
+        name: String,
+        msg_id: usize,
+        count: usize,
+    ) -> Result<Vec<Vec<u8>>, Error> {
         let itr = match self.manifest.itrs.get(&name) {
             Some(itr) => itr,
             None => return Err(Error::ItrDoesNotExist),

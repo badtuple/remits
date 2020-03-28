@@ -2,7 +2,7 @@
 extern crate log;
 
 use argh::FromArgs;
-use bytes::BytesMut;
+use bytes::{Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
@@ -15,8 +15,32 @@ use futures::SinkExt;
 mod db;
 mod parser;
 
-#[derive(Clone, Debug, Serialize, Deserialize, FromArgs)]
+// Need a better place to store these so they are searchable and not opaque to contributors
+macro_rules! format_error_response {
+    ($err:expr) => {{
+        let mut out: BytesMut = BytesMut::from("!");
+        out.extend_from_slice(&Bytes::from($err));
+        out.into()
+    }};
+}
+
+macro_rules! format_response {
+    ($resp:expr) => {{
+        match $resp {
+            Ok(x) => {
+                let mut out: BytesMut = BytesMut::from("+");
+                out.extend_from_slice(&Bytes::from(x));
+                out.into()
+            }
+            Err(e) => {
+                format_error_response!(e)
+            }
+        }
+    }};
+}
+
 /// Top level config
+#[derive(Clone, Debug, Serialize, Deserialize, FromArgs)]
 struct RemitsConfig {
     #[argh(option, short = 'p')]
     /// what port to start remits on
@@ -69,28 +93,18 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
             Ok(cmd) => cmd,
             Err(e) => {
                 debug!("responding with: {:?}", e);
-                let _ = framer.send(e.into()).await;
+                let resp: Bytes = format_error_response!(e);
+
+                let _ = framer.send(resp).await;
                 continue;
             }
         };
 
         let out = db.lock().unwrap().exec(cmd);
-        let resp = match out {
-            Ok(res) => {
-                let mut buf = BytesMut::from("+");
-                buf.extend_from_slice(res.as_bytes());
-                buf
-            }
-            Err(e) => {
-                let mut buf = BytesMut::from("!");
-                let vec: Vec<u8> = e.into();
-                buf.extend_from_slice(&vec);
-                buf
-            }
-        };
+        let resp = format_response!(out);
 
         debug!("responding with: {:?}", resp);
-        if let Err(e) = framer.send(resp.freeze()).await {
+        if let Err(e) = framer.send(resp).await {
             error!("could not respond: {}", e);
         }
     }

@@ -42,14 +42,15 @@ async fn main() {
                     Some(result) => {
                         let output_str = &result.unwrap_or_else(|_| "".into());
                         let output = std::str::from_utf8(output_str).unwrap();
-                        let res = format!("{:?}", output);
-                        if res.chars().nth(1).unwrap() == '!' {
-                            let formated_string = &res.to_string()[2..res.len() -1];
-                            println!("{} {}", "Error".red(),formated_string)
-                        } else {
-                            let formated_string = &res.to_string()[2..res.len() -1];
-                            println!("{} {}", "Success".green(),formated_string)
-                        }
+                        let res = format!("{}", output);
+                        match res.chars().nth(0) {
+                            Some(x) => match x {
+                                '+' => println!("{} {}", "Success".green(), &res[1..]),
+                                '!' => println!("{} {}", "Error".red(), &res[1..]),
+                                _ => println!("{} Unknown return type {}", "Error".red(), x),
+                            },
+                            _ => println!("{} Response is empty", "Error".red()),
+                        };
                     }
                     None => eprintln!("no response from remits"),
                 };
