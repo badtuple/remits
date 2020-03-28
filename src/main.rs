@@ -20,9 +20,6 @@ struct RemitsConfig {
     #[argh(option, short = 'p')]
     /// what port to start remits on
     pub port: Option<String>,
-    #[argh(option, short = 'c')]
-    /// show color in logs
-    pub color: Option<bool>,
 }
 
 impl RemitsConfig {
@@ -31,9 +28,6 @@ impl RemitsConfig {
         if flags.port.is_some() {
             self.port = flags.port;
         }
-        if flags.color.is_some() {
-            self.color = flags.color;
-        }
     }
 }
 /// `RemitsConfig` implements `Default`
@@ -41,7 +35,6 @@ impl ::std::default::Default for RemitsConfig {
     fn default() -> Self {
         Self {
             port: Some("4242".into()),
-            color: Some(true),
         }
     }
 }
