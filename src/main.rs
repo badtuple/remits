@@ -15,7 +15,7 @@ use futures::SinkExt;
 mod db;
 mod parser;
 
-// Need a better place to store these so they are searchable and not opaque to contributors 
+// Need a better place to store these so they are searchable and not opaque to contributors
 macro_rules! format_error_response {
     ($err:expr) => {{
         let mut out: BytesMut = BytesMut::from("!");
@@ -24,11 +24,20 @@ macro_rules! format_error_response {
     }};
 }
 
-macro_rules! format_success_response {
+macro_rules! format_response {
     ($resp:expr) => {{
-        let mut out: BytesMut = BytesMut::from("+");
-        out.extend_from_slice(&Bytes::from($resp));
-        out.into()
+        match $resp {
+            Ok(x) => {
+                let mut out: BytesMut = BytesMut::from("+");
+                out.extend_from_slice(&Bytes::from(x));
+                out.into()
+            }
+            Err(e) => {
+                let mut out: BytesMut = BytesMut::from("!");
+                out.extend_from_slice(&Bytes::from(e));
+                out.into()
+            }
+        }
     }};
 }
 
@@ -86,10 +95,7 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
         };
 
         let out = db.lock().unwrap().exec(cmd);
-        let resp = match out {
-            Ok(res) => format_success_response!(res),
-            Err(e) => format_error_response!(e),
-        };
+        let resp = format_response!(out);
 
         debug!("responding with: {:?}", resp);
         if let Err(e) = framer.send(resp).await {
