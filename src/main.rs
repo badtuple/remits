@@ -2,7 +2,7 @@
 extern crate log;
 
 use argh::FromArgs;
-use bytes::BytesMut;
+use bytes::{BytesMut, Bytes};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
@@ -14,6 +14,22 @@ use futures::SinkExt;
 
 mod db;
 mod parser;
+
+macro_rules! format_error_response {
+    ($err:expr) =>{{
+        let mut out: BytesMut = BytesMut::from("!");
+        out.extend_from_slice(&Bytes::from($err));
+        out.into()
+    }};
+}
+
+macro_rules! format_success_response {
+    ($resp:expr) =>{{
+        let mut out: BytesMut = BytesMut::from("+");
+        out.extend_from_slice(&Bytes::from($resp));
+        out.into()
+    }};
+}
 
 #[derive(Debug, Serialize, Deserialize, FromArgs)]
 /// Top level config
@@ -61,7 +77,9 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
             Ok(cmd) => cmd,
             Err(e) => {
                 debug!("responding with: {:?}", e);
-                let _ = framer.send(e.into()).await;
+                let resp: Bytes = format_error_response!(e);
+
+                let _ = framer.send(resp).await;
                 continue;
             }
         };
@@ -69,20 +87,15 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
         let out = db.lock().unwrap().exec(cmd);
         let resp = match out {
             Ok(res) => {
-                let mut buf = BytesMut::from("+");
-                buf.extend_from_slice(res.as_bytes());
-                buf
+                format_success_response!(res)
             }
             Err(e) => {
-                let mut buf = BytesMut::from("!");
-                let vec: Vec<u8> = e.into();
-                buf.extend_from_slice(&vec);
-                buf
+                format_error_response!(e)
             }
         };
 
         debug!("responding with: {:?}", resp);
-        if let Err(e) = framer.send(resp.freeze()).await {
+        if let Err(e) = framer.send(resp).await {
             error!("could not respond: {}", e);
         }
     }

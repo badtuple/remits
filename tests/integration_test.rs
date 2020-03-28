@@ -61,5 +61,5 @@ async fn test_malformed_msg_add() {
 
     // Not valid message pack
     let msg_cmd = b"MSG ADD test_log \x93\x00\x2a".to_vec();
-    should_respond_with!(framer, msg_cmd, b"err MsgNotValidMessagePack");
+    should_respond_with!(framer, msg_cmd, b"!MsgNotValidMessagePack");
 }
