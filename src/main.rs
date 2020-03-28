@@ -2,7 +2,7 @@
 extern crate log;
 
 use argh::FromArgs;
-use bytes::{BytesMut, Bytes};
+use bytes::{Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
@@ -16,7 +16,7 @@ mod db;
 mod parser;
 
 macro_rules! format_error_response {
-    ($err:expr) =>{{
+    ($err:expr) => {{
         let mut out: BytesMut = BytesMut::from("!");
         out.extend_from_slice(&Bytes::from($err));
         out.into()
@@ -24,7 +24,7 @@ macro_rules! format_error_response {
 }
 
 macro_rules! format_success_response {
-    ($resp:expr) =>{{
+    ($resp:expr) => {{
         let mut out: BytesMut = BytesMut::from("+");
         out.extend_from_slice(&Bytes::from($resp));
         out.into()
@@ -86,12 +86,8 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
 
         let out = db.lock().unwrap().exec(cmd);
         let resp = match out {
-            Ok(res) => {
-                format_success_response!(res)
-            }
-            Err(e) => {
-                format_error_response!(e)
-            }
+            Ok(res) => format_success_response!(res),
+            Err(e) => format_error_response!(e),
         };
 
         debug!("responding with: {:?}", resp);
