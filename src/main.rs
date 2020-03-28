@@ -15,6 +15,7 @@ use futures::SinkExt;
 mod db;
 mod parser;
 
+// Need a better place to store these so they are searchable and not opaque to contributors 
 macro_rules! format_error_response {
     ($err:expr) => {{
         let mut out: BytesMut = BytesMut::from("!");
