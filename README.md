@@ -2,7 +2,7 @@
 
 Remote Iterator Server
 
-Remits is a timeseries database / log abstraction that allows you to query via intuitive map, reduce, and filter functions called _Iterators_.
+Remits is a persisted stream database that allows you to query via intuitive map, reduce, and filter functions called _Iterators_.
 
 Remits is built to be fast, lightweight, and reliable. It is intended to be easy to setup, manage, and reason about.
 

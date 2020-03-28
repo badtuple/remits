@@ -5,6 +5,7 @@ pub enum Error {
     LogDoesNotExist,
     ItrExistsWithSameName,
     ItrDoesNotExist,
+    MsgNotValidMessagePack,
 }
 
 impl From<Error> for Bytes {

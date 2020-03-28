@@ -19,6 +19,11 @@ pub enum Command {
         log: String,
         name: String,
     },
+    ItrNext {
+        name: String,
+        msg_id: usize,
+        count: usize,
+    },
 }
 
 impl Command {
