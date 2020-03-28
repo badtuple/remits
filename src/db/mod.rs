@@ -63,7 +63,7 @@ impl DB {
 
     /// List all logs in db
     fn log_list(&mut self) -> Result<String, Error> {
-        let out = self.manifest.logs.keys().map(|key| format!("{}", key));
+        let out = self.manifest.logs.keys().map(|key| key.to_string());
         Ok(out.collect::<Vec<String>>().join(","))
     }
     /// Adds a new log to the DB
@@ -101,7 +101,7 @@ impl DB {
     /// List all itrs attached to a log
     fn itr_list(&mut self, name: String) -> Result<String, Error> {
         if name == "" {
-            let out = self.manifest.itrs.keys().map(|key| format!("{}", key));
+            let out = self.manifest.itrs.keys().map(|key| key.to_string());
             return Ok(out.collect::<Vec<String>>().join(","));
         }
         Ok(self
@@ -110,7 +110,6 @@ impl DB {
             .iter()
             .filter(|(_, itr)| itr.log == name)
             .map(|(_, x)| x.name.clone())
-            .map(|itr| format!("{}", itr))
             .collect::<Vec<String>>()
             .join(","))
     }

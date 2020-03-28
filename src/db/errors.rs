@@ -15,7 +15,7 @@ impl From<Error> for Bytes {
 }
 impl From<Error> for Vec<u8> {
     fn from(e: Error) -> Self {
-        let output: String = format!("!{:?}", e).into();
+        let output: String = format!("!{:?}", e);
         output.as_bytes().to_vec()
     }
 }
