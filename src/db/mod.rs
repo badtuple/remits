@@ -2,6 +2,7 @@ mod errors;
 mod iters;
 mod logs;
 mod manifest;
+mod messagepack;
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;

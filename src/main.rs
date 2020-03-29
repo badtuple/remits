@@ -32,9 +32,7 @@ macro_rules! format_response {
                 out.extend_from_slice(&Bytes::from(x));
                 out.into()
             }
-            Err(e) => {
-                format_error_response!(e)
-            }
+            Err(e) => format_error_response!(e),
         }
     }};
 }

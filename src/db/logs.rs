@@ -1,5 +1,5 @@
 use super::errors::Error;
-use rmpv::decode::value::read_value;
+use super::messagepack;
 use std::ops::Index;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -13,7 +13,7 @@ impl Log {
     }
 
     pub fn add_msg(&mut self, msg: Vec<u8>) -> Result<(), Error> {
-        if read_value(&mut &*msg).is_err() {
+        if !messagepack::valid(&msg) {
             return Err(Error::MsgNotValidMessagePack);
         }
         self.data.push(msg);
