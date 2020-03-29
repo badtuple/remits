@@ -1,6 +1,6 @@
 use super::logs::Log;
-use std::io::Cursor;
 use super::Error;
+use std::io::Cursor;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Itr {
