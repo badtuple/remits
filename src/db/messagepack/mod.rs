@@ -206,6 +206,10 @@ impl Lexer {
             }
         };
 
+        if bytes_of_data as usize > self.bytes_left() {
+            return Err(Error::MalformedMessagePack);
+        }
+
         // Collects known sizes/lengths. This includes fixed-size types and the headers of variably
         // sized types.
         for _ in 0..bytes_of_data {
@@ -253,6 +257,10 @@ impl Lexer {
         let b = self.msg[self.idx];
         self.idx += 1;
         b
+    }
+
+    fn bytes_left(&self) -> usize {
+        self.msg.len() - self.idx
     }
 
     fn consume_raw_bytes(&mut self, len: usize) -> Vec<u8> {
@@ -370,4 +378,5 @@ impl TryInto<MPType> for u8 {
 pub enum Error {
     UnrecognizedType,
     CannotHaveMapOrArrayAsMapKey,
+    MalformedMessagePack,
 }

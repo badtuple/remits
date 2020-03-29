@@ -49,15 +49,21 @@ async fn test_can_create_log() {
 
 #[tokio::test]
 async fn test_can_create_itr() {
+    // Should succeed in the happy path
     let mut framer = connect_to_remits().await;
-    let itr_cmd = "ITR ADD test_log test_itr \n return msg";
+    let itr_cmd = "ITR ADD test_log test_itr map \n return msg";
     should_respond_with!(framer, itr_cmd, b"+ok");
+
+    // Should fail if invalid itr typee
+    let mut framer = connect_to_remits().await;
+    let itr_cmd = "ITR ADD test_log test_itr NOT_A_ITR_TYPE \n return msg";
+    should_respond_with!(framer, itr_cmd, b"!ItrTypeInvalid");
 }
 
 #[tokio::test]
 async fn test_malformed_msg_add() {
     let mut framer = connect_to_remits().await;
-    should_respond_with!(framer, "LOG ADD test_log", b"ok");
+    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
 
     // Not valid message pack
     let msg_cmd = b"MSG ADD test_log \x93\x00\x2a".to_vec();
