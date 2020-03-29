@@ -148,7 +148,8 @@ impl DB {
             None => return Err(Error::LogDoesNotExist),
         };
 
-        Ok(itr.next(log, msg_id, count))
+        itr.next(log, msg_id, count)
+            .map_err(|_| Error::ErrEvaluatingLua)
     }
 }
 

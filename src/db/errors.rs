@@ -6,6 +6,7 @@ pub enum Error {
     ItrExistsWithSameName,
     ItrDoesNotExist,
     MsgNotValidMessagePack,
+    ErrEvaluatingLua,
 }
 
 impl From<Error> for Bytes {

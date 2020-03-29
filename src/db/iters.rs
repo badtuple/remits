@@ -1,4 +1,6 @@
 use super::logs::Log;
+use super::messagepack;
+use rlua::Lua;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Itr {
@@ -9,10 +11,28 @@ pub struct Itr {
 }
 
 impl Itr {
-    pub fn next(&self, log: &Log, offset: usize, count: usize) -> Vec<Vec<u8>> {
-        // TODO: this will panic if count is out of bounds.
-        // Implement `get` on Log and return None if nothing exists.
-        (0..count).map(|i| log[offset + i].clone()).collect()
+    pub fn next(
+        &self,
+        log: &Log,
+        offset: usize,
+        count: usize,
+    ) -> Result<Vec<Vec<u8>>, messagepack::Error> {
+        let lua = Lua::new();
+        lua.context(|lua_ctx| {
+            // TODO: this will panic if count is out of bounds.
+            // Implement `get` on Log and return None if nothing exists.
+            let results = (0..count)
+                .map(|i| {
+                    let msg = log[offset + i].clone();
+                    // Deserializes message into the "msg" global var in the Lua vm.
+                    let result = messagepack::unpack(lua_ctx, msg);
+
+                    vec![0x00] // Placeholder until serialization code
+                })
+                .collect::<Vec<Vec<u8>>>();
+
+            Ok(results)
+        })
     }
 }
 
