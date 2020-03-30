@@ -581,6 +581,7 @@ dependencies = [
  "bytes",
  "colored",
  "confy",
+ "directories",
  "env_logger",
  "futures",
  "log",
