@@ -22,12 +22,14 @@ impl Itr {
                 // TODO: this will panic if count is out of bounds.
                 // Implement `get` on Log and return None if nothing exists.
                 let msg = log[offset + i].clone();
+                trace!("pulled msg from log: {:?}", msg);
 
-                let mut deserializer = rmp_serde::decode::Deserializer::new(Cursor::new(msg));
+                let mut deserializer = rmp_serde::decode::Deserializer::new(Cursor::new(msg.clone()));
                 let serializer = rlua_serde::ser::Serializer { lua: ctx };
                 let lua_msg = match serde_transcode::transcode(&mut deserializer, serializer) {
                     Ok(msg) => msg,
-                    Err(_) => {
+                    Err(e) => {
+                        debug!("error transcoding msgpack to lua: {:?}", e);
                         error = Some(Error::InvalidMsgPack);
                         break;
                     }
@@ -35,16 +37,23 @@ impl Itr {
 
                 globals.set("msg", lua_msg);
                 let res = ctx.load(&*self.func).eval::<rlua::Value>();
-                if let Err(_) = res {
+                if let Err(e) = res {
+                    debug!("error running lua: {:?} {:?}", e, msg);
                     error = Some(Error::ErrRunningLua);
                     break;
                 };
 
                 let mut buf: Vec<u8> = vec![];
                 let value = res.expect("couldnt unwrap response from eval");
-                let deserializer = rlua_serde::de::Deserializer { value };
+                let deserializer = rlua_serde::de::Deserializer { value: value.clone() };
                 let mut serializer = rmp_serde::encode::Serializer::new(&mut buf);
-                serde_transcode::transcode(deserializer, &mut serializer).unwrap();
+                match serde_transcode::transcode(deserializer, &mut serializer) {
+                    Ok(ok) => info!("printing ok: {:?}", ok),
+                    Err(e) => {
+                        debug!("error transcoding lua to msgpack: {:?} {:?}", e, value);
+                        error = Some(Error::ErrReadingLuaResponse);
+                    },
+                };
 
                 output.push(buf);
             }

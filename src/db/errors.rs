@@ -8,6 +8,7 @@ pub enum Error {
     MsgNotValidMessagePack,
     InvalidMsgPack,
     ErrRunningLua,
+    ErrReadingLuaResponse,
 }
 
 impl From<Error> for Bytes {

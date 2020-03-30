@@ -66,7 +66,7 @@ fn setup_logger() {
     use log::LevelFilter;
 
     Builder::new()
-        .filter(None, LevelFilter::Debug)
+        .filter(None, LevelFilter::Trace)
         .target(Target::Stdout)
         .format_timestamp_nanos()
         .init();
