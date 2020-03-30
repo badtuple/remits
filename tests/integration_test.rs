@@ -4,7 +4,7 @@ use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use serde::{Serialize};
+use serde::Serialize;
 
 use bytes::Bytes;
 
@@ -54,7 +54,7 @@ async fn integration_tests() {
 
     // try to add invalid message pack
     let msg_cmd = b"MSG ADD test_log \x93\x00\x2a".to_vec();
-    should_respond_with!(framer, msg_cmd, b"!MsgNotValidMessagePack");
+    should_respond_with!(framer, msg_cmd, b"!MsgNotValidCbor");
 
     // add valid message
     #[derive(Serialize)]
@@ -64,7 +64,7 @@ async fn integration_tests() {
         list: Vec<usize>,
     }
 
-    let mp = rmp_serde::to_vec(&TestInput {
+    let cbor = serde_cbor::to_vec(&TestInput {
         name: "testing".to_owned(),
         number: 42,
         list: vec![1, 2, 3],
@@ -72,9 +72,9 @@ async fn integration_tests() {
     .unwrap();
 
     let mut msg_add_cmd = b"MSG ADD test_log ".to_vec();
-    msg_add_cmd.append(&mut mp.clone());
+    msg_add_cmd.append(&mut cbor.clone());
     should_respond_with!(framer, msg_add_cmd, b"+ok");
 
     let itr_next_cmd = b"ITR NEXT test_itr 0 1".to_vec();
-    should_respond_with!(framer, itr_next_cmd, b"+ok");
+    should_respond_with!(framer, itr_next_cmd, &*cbor);
 }

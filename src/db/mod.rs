@@ -196,20 +196,22 @@ mod tests {
     fn test_db_msg_add() {
         let mut db = DB::new();
         let _ = db.log_add("test".to_owned()).unwrap();
+
         // Normal
+        let msg = vec![0x19, 0x03, 0xE8];
         let out = db
-            .msg_add("test".to_owned(), "hello".as_bytes().to_vec())
+            .msg_add("test".to_owned(), msg.clone())
             .unwrap();
         assert_eq!(out, "ok".to_owned());
         assert_eq!(db.logs.len(), 1);
-        assert_eq!(db.logs["test"][0], "hello".as_bytes().to_vec());
+        assert_eq!(db.logs["test"][0], msg.clone());
 
         let out = db
-            .msg_add("test".to_owned(), "hello2".as_bytes().to_vec())
+            .msg_add("test".to_owned(), msg.clone())
             .unwrap();
         assert_eq!(out, "ok".to_owned());
         assert_eq!(db.logs.len(), 1);
-        assert_eq!(db.logs["test"][1], "hello2".as_bytes().to_vec());
+        assert_eq!(db.logs["test"][1], msg.clone());
     }
     #[test]
     #[should_panic]

@@ -24,7 +24,7 @@ impl Itr {
                 let msg = log[offset + i].clone();
                 trace!("pulled msg from log: {:?}", msg);
 
-                let mut deserializer = rmp_serde::decode::Deserializer::new(Cursor::new(msg.clone()));
+                let mut deserializer = serde_cbor::Deserializer::from_slice(&*msg);
                 let serializer = rlua_serde::ser::Serializer { lua: ctx };
                 let lua_msg = match serde_transcode::transcode(&mut deserializer, serializer) {
                     Ok(msg) => msg,
@@ -45,14 +45,16 @@ impl Itr {
 
                 let mut buf: Vec<u8> = vec![];
                 let value = res.expect("couldnt unwrap response from eval");
-                let deserializer = rlua_serde::de::Deserializer { value: value.clone() };
-                let mut serializer = rmp_serde::encode::Serializer::new(&mut buf);
+                let deserializer = rlua_serde::de::Deserializer {
+                    value: value.clone(),
+                };
+                let mut serializer = serde_cbor::Serializer::new(&mut buf);
                 match serde_transcode::transcode(deserializer, &mut serializer) {
                     Ok(ok) => info!("printing ok: {:?}", ok),
                     Err(e) => {
                         debug!("error transcoding lua to msgpack: {:?} {:?}", e, value);
                         error = Some(Error::ErrReadingLuaResponse);
-                    },
+                    }
                 };
 
                 output.push(buf);

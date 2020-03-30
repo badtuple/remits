@@ -5,7 +5,7 @@ pub enum Error {
     LogDoesNotExist,
     ItrExistsWithSameName,
     ItrDoesNotExist,
-    MsgNotValidMessagePack,
+    MsgNotValidCbor,
     InvalidMsgPack,
     ErrRunningLua,
     ErrReadingLuaResponse,
