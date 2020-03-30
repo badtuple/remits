@@ -4,6 +4,8 @@ use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
+use serde::Serialize;
+
 use bytes::Bytes;
 
 static LOCAL_REMITS: &str = "localhost:4242";
@@ -34,32 +36,45 @@ async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
 }
 
 #[tokio::test]
-async fn test_can_connect_to_server() {
-    connect_to_remits().await;
-}
-
-#[tokio::test]
-async fn test_can_create_log() {
+async fn integration_tests() {
     let mut framer = connect_to_remits().await;
     should_respond_with!(framer, "LOG ADD test_log", b"+ok");
 
     // second create should be a noop, but still respond with "ok"
     should_respond_with!(framer, "LOG ADD test_log", b"+ok");
-}
 
-#[tokio::test]
-async fn test_can_create_itr() {
-    let mut framer = connect_to_remits().await;
-    let itr_cmd = "ITR ADD test_log test_itr \n return msg";
+    // invalid iterator type
+    let itr_cmd = "ITR ADD test_log test_itr_bad NOT_A_VALID_TYPE \n return msg";
+    should_respond_with!(framer, itr_cmd, b"!ItrTypeInvalid");
+
+    // create a valid iterator
+    let itr_cmd = r"ITR ADD test_log test_itr MAP 
+        return msg";
     should_respond_with!(framer, itr_cmd, b"+ok");
-}
 
-#[tokio::test]
-async fn test_malformed_msg_add() {
-    let mut framer = connect_to_remits().await;
-    should_respond_with!(framer, "LOG ADD test_log", b"ok");
-
-    // Not valid message pack
+    // try to add invalid message pack
     let msg_cmd = b"MSG ADD test_log \x93\x00\x2a".to_vec();
-    should_respond_with!(framer, msg_cmd, b"!MsgNotValidMessagePack");
+    should_respond_with!(framer, msg_cmd, b"!MsgNotValidCbor");
+
+    // add valid message
+    #[derive(Serialize)]
+    struct TestInput {
+        name: String,
+        number: usize,
+        list: Vec<usize>,
+    }
+
+    let cbor = serde_cbor::to_vec(&TestInput {
+        name: "testing".to_owned(),
+        number: 42,
+        list: vec![1, 2, 3],
+    })
+    .unwrap();
+
+    let mut msg_add_cmd = b"MSG ADD test_log ".to_vec();
+    msg_add_cmd.append(&mut cbor.clone());
+    should_respond_with!(framer, msg_add_cmd, b"+ok");
+
+    let itr_next_cmd = b"ITR NEXT test_itr 0 1".to_vec();
+    should_respond_with!(framer, itr_next_cmd, &*cbor);
 }

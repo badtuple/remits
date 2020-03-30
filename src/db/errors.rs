@@ -5,7 +5,10 @@ pub enum Error {
     LogDoesNotExist,
     ItrExistsWithSameName,
     ItrDoesNotExist,
-    MsgNotValidMessagePack,
+    MsgNotValidCbor,
+    InvalidMsgPack,
+    ErrRunningLua,
+    ErrReadingLuaResponse,
 }
 
 impl From<Error> for Bytes {
