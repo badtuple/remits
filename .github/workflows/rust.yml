@@ -15,5 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build
       run: cargo build --bin remits --verbose
+    - name: Run server
+      run: cargo run
     - name: Run tests
-      run: cargo test --bins --verbose
+      run: cargo test
