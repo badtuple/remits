@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate num_derive;
 
 use argh::FromArgs;
 use bytes::{Bytes, BytesMut};
 use env_logger::{Builder, Target};
 use futures::SinkExt;
+use protocol::Connection;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
@@ -14,6 +17,7 @@ use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 mod db;
 mod parser;
+mod protocol;
 
 // Need a better place to store these so they are searchable and not opaque to contributors
 macro_rules! format_error_response {
@@ -88,12 +92,10 @@ fn setup_logger(config_level: Option<String>, flag_level: Option<String>) {
     debug!("Log level set to {}", log_level);
 }
 
-async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
+async fn handle(db: Arc<Mutex<db::DB>>, conn: Connection) {
     debug!("accepting connection");
 
-    let mut framer = Framed::new(socket, LengthDelimitedCodec::new());
-
-    while let Some(result) = framer.next().await {
+    while let Some(result) = conn.next_request().await {
         let frame = match result {
             Ok(f) => f,
             Err(e) => {
@@ -102,25 +104,16 @@ async fn handle_socket(db: Arc<Mutex<db::DB>>, socket: TcpStream) {
             }
         };
 
-        debug!("received command: {:?}", &frame);
         let cmd = match parser::parse(&*frame) {
             Ok(cmd) => cmd,
             Err(e) => {
-                debug!("responding with: {:?}", e);
-                let resp: Bytes = format_error_response!(e);
-
-                let _ = framer.send(resp).await;
+                conn.respond(e).await;
                 continue;
             }
         };
 
-        let out = db.lock().unwrap().exec(cmd);
-        let resp = format_response!(out);
-
-        debug!("responding with: {:?}", resp);
-        if let Err(e) = framer.send(resp).await {
-            error!("could not respond: {}", e);
-        }
+        let resp = db.lock().unwrap().exec(cmd);
+        conn.respond(resp).await;
     }
 
     debug!("closing connection");
@@ -142,7 +135,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         match listener.accept().await {
             Ok((socket, _)) => {
-                tokio::spawn(handle_socket(db.clone(), socket));
+                tokio::spawn(handle(db.clone(), socket.into()));
             }
             Err(e) => error!("error accepting listener: {}", e),
         }

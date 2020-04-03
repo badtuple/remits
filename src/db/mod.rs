@@ -199,16 +199,12 @@ mod tests {
 
         // Normal
         let msg = vec![0x19, 0x03, 0xE8];
-        let out = db
-            .msg_add("test".to_owned(), msg.clone())
-            .unwrap();
+        let out = db.msg_add("test".to_owned(), msg.clone()).unwrap();
         assert_eq!(out, "ok".to_owned());
         assert_eq!(db.logs.len(), 1);
         assert_eq!(db.logs["test"][0], msg.clone());
 
-        let out = db
-            .msg_add("test".to_owned(), msg.clone())
-            .unwrap();
+        let out = db.msg_add("test".to_owned(), msg.clone()).unwrap();
         assert_eq!(out, "ok".to_owned());
         assert_eq!(db.logs.len(), 1);
         assert_eq!(db.logs["test"][1], msg.clone());
