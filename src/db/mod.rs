@@ -34,17 +34,19 @@ impl DB {
 
         match cmd {
             LogShow(commands::LogShow { log_name }) => self.log_show(log_name),
-            //LogAdd(name) => self.log_add(name),
-            //LogDel(name) => self.log_del(name),
-            //LogList() => self.log_list(),
+            LogAdd(commands::LogAdd { log_name }) => self.log_add(log_name),
+            LogDelete(commands::LogDelete { log_name }) => self.log_delete(log_name),
+            LogList => self.log_list(),
             //ItrList(name) => self.itr_list(name),
-            //MsgAdd { log, msg } => self.msg_add(log, msg),
-            //ItrAdd {
-            //log,
-            //name,
-            //kind,
-            //func,
-            //} => self.itr_add(log, name, kind, func),
+            MessageAdd(commands::MessageAdd { log_name, message }) => {
+                self.msg_add(log_name, message)
+            }
+            IteratorAdd(commands::IteratorAdd {
+                log_name,
+                iterator_name,
+                iterator_kind,
+                iterator_func,
+            }) => self.itr_add(log_name, iterator_name, iterator_kind, iterator_func),
             //ItrDel { log, name } => self.itr_del(log, name),
             //ItrNext {
             //name,
@@ -64,9 +66,14 @@ impl DB {
     }
 
     /// List all logs in db
-    fn log_list(&mut self) -> Result<String, Error> {
-        let out = self.manifest.logs.keys().map(|key| key.to_string());
-        Ok(out.collect::<Vec<String>>().join(","))
+    fn log_list(&mut self) -> Response {
+        Response::Data(
+            self.manifest
+                .logs
+                .keys()
+                .map(|key| key.as_bytes().to_vec())
+                .collect(),
+        )
     }
 
     /// Displays information about a log
@@ -76,30 +83,31 @@ impl DB {
     }
 
     /// Adds a new log to the DB
-    fn log_add(&mut self, name: String) -> Result<String, Error> {
+    fn log_add(&mut self, name: String) -> Response {
         self.manifest.add_log(name.clone());
         self.logs.entry(name).or_insert_with(Log::new);
-        Ok("ok".to_owned())
+        Response::Info("ok".as_bytes().to_vec())
     }
 
     /// Deletes a log from the DB
-    fn log_del(&mut self, name: String) -> Result<String, Error> {
+    fn log_delete(&mut self, name: String) -> Response {
         if let Entry::Occupied(l) = self.logs.entry(name.clone()) {
             l.remove_entry();
             self.manifest.del_log(name);
         };
-
-        Ok("ok".to_owned())
+        Response::Info("ok".as_bytes().to_vec())
     }
 
     /// Adds a new message to a log
-    fn msg_add(&mut self, log: String, msg: Vec<u8>) -> Result<String, Error> {
-        match self.logs.get_mut(&log) {
-            Some(l) => {
-                l.add_msg(msg)?;
-                Ok("ok".to_owned())
-            }
-            None => Err(Error::LogDoesNotExist),
+    fn msg_add(&mut self, log: String, msg: Vec<u8>) -> Response {
+        let l = self.logs.get_mut(&log);
+        if l.is_none() {
+            return Error::LogDoesNotExist.into();
+        }
+
+        match l.unwrap().add_msg(msg) {
+            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Err(e) => e.into(),
         }
     }
 
@@ -120,15 +128,11 @@ impl DB {
     }
 
     /// Adds a new unindexed iterator to a log
-    fn itr_add(
-        &mut self,
-        log: String,
-        name: String,
-        kind: String,
-        func: String,
-    ) -> Result<String, Error> {
-        self.manifest.add_itr(log, name, kind, func)?;
-        Ok("ok".to_owned())
+    fn itr_add(&mut self, log: String, name: String, kind: String, func: String) -> Response {
+        match self.manifest.add_itr(log, name, kind, func) {
+            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Err(e) => e.into(),
+        }
     }
     // Delets an unused unindexed iterator to a log
     fn itr_del(&mut self, log: String, name: String) -> Result<String, Error> {

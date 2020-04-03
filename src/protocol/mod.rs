@@ -56,9 +56,19 @@ impl Connection {
 
 impl From<TcpStream> for Connection {
     fn from(socket: TcpStream) -> Connection {
-        let mut framer = Framed::new(socket, LengthDelimitedCodec::new());
+        let framer = Framed::new(socket, LengthDelimitedCodec::new());
         Connection { framer }
     }
+}
+
+macro_rules! parse_cbor {
+    ($cmd:ident, $data:expr) => {{
+        let c = match serde_cbor::from_slice($data) {
+            Ok(c) => c,
+            Err(_) => return Err(Error::CouldNotReadPayload),
+        };
+        Command::$cmd(c)
+    }};
 }
 
 fn read_command(bytes: BytesMut) -> Result<Command, Error> {
@@ -80,13 +90,14 @@ fn read_command(bytes: BytesMut) -> Result<Command, Error> {
 
     use RequestCodes::*;
     let cmd = match code {
-        LogShow => {
-            let c = match serde_cbor::from_slice(data) {
-                Ok(c) => c,
-                Err(_) => return Err(Error::CouldNotReadPayload),
-            };
-            Command::LogShow(c)
-        }
+        LogShow => parse_cbor!(LogShow, data),
+        LogAdd => parse_cbor!(LogAdd, data),
+        LogDelete => parse_cbor!(LogDelete, data),
+        LogList => Command::LogList,
+        MessageAdd => parse_cbor!(MessageAdd, data),
+        IteratorAdd => parse_cbor!(IteratorAdd, data),
+        //IteratorList => parse_cbor!(IteratorList, data),
+        //IteratorNext => parse_cbor!(IteratorNext, data),
         _ => unimplemented!(),
     };
 
@@ -121,7 +132,12 @@ impl From<Response> for Bytes {
                 }
                 byt.into()
             }
-            _ => unimplemented!(),
+            Response::Error(err) => [
+                &[FrameKind::Error.to_u8().unwrap(), err.to_u8().unwrap()],
+                &*err.to_bytes(),
+            ]
+            .concat()
+            .into(),
         }
     }
 }

@@ -1,6 +1,6 @@
 use bytes::Bytes;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, ToPrimitive)]
 pub enum Error {
     // DB Errors
     LogDoesNotExist,
@@ -28,17 +28,14 @@ pub enum Error {
     MsgIdNotNumber,
 }
 
+impl Error {
+    pub fn to_bytes(self) -> Vec<u8> {
+        format!("{:?}", self).into()
+    }
+}
+
 impl From<Error> for Bytes {
     fn from(e: Error) -> Self {
         format!("{:?}", e).into()
     }
 }
-impl From<Error> for Vec<u8> {
-    fn from(e: Error) -> Self {
-        let output: String = format!("{:?}", e).into();
-        output.as_bytes().to_vec()
-    }
-}
-
-//#[derive(FromPrimitive, ToPrimitive)]
-//pub enum ErrorCodes {}
