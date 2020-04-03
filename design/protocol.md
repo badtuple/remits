@@ -10,10 +10,16 @@ frame in return.
 Frames sent over the TCP connection conform to the following format:
 
 ```
-+- kind: u8 -+- code: u8 -+- len: u32 -+--- payload ---+
-|    0x00    |    0x00    | 0x00000000 |  cbor binary  |
++- len: u32 -+- kind: u8 -+- code: u8 -+--- payload ---+
+| 0x00000000 |    0x00    |    0x00    |  cbor binary  |
 +------------+------------+------------+---------------+
 ```
+
+### Len
+
+The first 4 bytes of a frame represent the length of the rest of the frame.
+It is encoded as an unsigned 32bit integer. The Len field includes the length
+of payload as well as the size of the Kind and Code fields.
 
 ### Kinds
 
@@ -36,11 +42,10 @@ A Code for an Info Response and Data Response is always 0x00.
 
 The Frame Code is the second byte in the request.
 
-### Length and Payload
+### Payload
 
-The 3rd-6th byte is an unsigned 32bit integer that represents the length of the
-Paylod in bytes. The rest of the frame is data encoded in CBOR format. The schema
-of that data depends on the Frame's Kind and Code.
+The rest of the frame is data encoded in CBOR format. The schema of that data
+depends on the Frame's Kind and Code.
 
 ## Request
 

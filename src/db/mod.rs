@@ -6,8 +6,10 @@ mod manifest;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-use crate::parser::Command;
-use errors::Error;
+use crate::commands;
+use crate::commands::Command;
+use crate::errors::Error;
+use crate::protocol::Response;
 use logs::Log;
 use manifest::Manifest;
 
@@ -27,37 +29,37 @@ impl DB {
         }
     }
 
-    pub fn exec(&mut self, cmd: Command) -> Result<String, Error> {
+    pub fn exec(&mut self, cmd: Command) -> Response {
         use Command::*;
 
         match cmd {
-            LogShow(name) => self.log_show(name),
-            LogAdd(name) => self.log_add(name),
-            LogDel(name) => self.log_del(name),
-            LogList() => self.log_list(),
-            ItrList(name) => self.itr_list(name),
-            MsgAdd { log, msg } => self.msg_add(log, msg),
-            ItrAdd {
-                log,
-                name,
-                kind,
-                func,
-            } => self.itr_add(log, name, kind, func),
-            ItrDel { log, name } => self.itr_del(log, name),
-            ItrNext {
-                name,
-                msg_id,
-                count,
-            } => {
-                // TODO: This returns a Vec<Vec<u8>> in the happy path.
-                // But right now, other commands only return String types.
-                // For now, I'm not going to return the data.
-                // We'll need to do that as part of the protocol work.
-                match self.itr_next(name, msg_id, count) {
-                    Ok(_data) => Ok("temporary placeholder for data".to_owned()),
-                    Err(e) => Err(e),
-                }
-            }
+            LogShow(commands::LogShow { log_name }) => self.log_show(log_name),
+            //LogAdd(name) => self.log_add(name),
+            //LogDel(name) => self.log_del(name),
+            //LogList() => self.log_list(),
+            //ItrList(name) => self.itr_list(name),
+            //MsgAdd { log, msg } => self.msg_add(log, msg),
+            //ItrAdd {
+            //log,
+            //name,
+            //kind,
+            //func,
+            //} => self.itr_add(log, name, kind, func),
+            //ItrDel { log, name } => self.itr_del(log, name),
+            //ItrNext {
+            //name,
+            //msg_id,
+            //count,
+            //} => {
+            // TODO: This returns a Vec<Vec<u8>> in the happy path.
+            // But right now, other commands only return String types.
+            // For now, I'm not going to return the data.
+            // We'll need to do that as part of the protocol work.
+            //match self.itr_next(name, msg_id, count) {
+            //Ok(_data) => Ok("temporary placeholder for data".to_owned()),
+            //Err(e) => Err(e),
+            //}
+            _ => unimplemented!(),
         }
     }
 
@@ -66,10 +68,13 @@ impl DB {
         let out = self.manifest.logs.keys().map(|key| key.to_string());
         Ok(out.collect::<Vec<String>>().join(","))
     }
-    /// Adds a new log to the DB
-    fn log_show(&mut self, name: String) -> Result<String, Error> {
-        Ok(format!("{:?}", self.manifest.logs[&name]))
+
+    /// Displays information about a log
+    fn log_show(&mut self, name: String) -> Response {
+        let info = format!("{:?}", self.manifest.logs[&name]);
+        Response::Info(info.as_bytes().to_vec())
     }
+
     /// Adds a new log to the DB
     fn log_add(&mut self, name: String) -> Result<String, Error> {
         self.manifest.add_log(name.clone());

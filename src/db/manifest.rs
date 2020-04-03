@@ -2,8 +2,8 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-use super::errors::Error;
 use super::iters::{string_to_kind_unchecked, Itr};
+use crate::errors::Error;
 
 /// The Manifest is a file at the root of the database directory that is used
 /// as a registry for database constructs such as Logs and Iters. It will map

@@ -4,42 +4,16 @@ extern crate log;
 extern crate num_derive;
 
 use argh::FromArgs;
-use bytes::{Bytes, BytesMut};
 use env_logger::{Builder, Target};
-use futures::SinkExt;
 use protocol::Connection;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::sync::{Arc, Mutex};
-use tokio::net::{TcpListener, TcpStream};
-use tokio::stream::StreamExt;
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
+use tokio::net::TcpListener;
 
+mod commands;
 mod db;
-mod parser;
+mod errors;
 mod protocol;
-
-// Need a better place to store these so they are searchable and not opaque to contributors
-macro_rules! format_error_response {
-    ($err:expr) => {{
-        let mut out: BytesMut = BytesMut::from("!");
-        out.extend_from_slice(&Bytes::from($err));
-        out.into()
-    }};
-}
-
-macro_rules! format_response {
-    ($resp:expr) => {{
-        match $resp {
-            Ok(x) => {
-                let mut out: BytesMut = BytesMut::from("+");
-                out.extend_from_slice(&Bytes::from(x));
-                out.into()
-            }
-            Err(e) => format_error_response!(e),
-        }
-    }};
-}
 
 /// Server options
 #[derive(Clone, Debug, Serialize, Deserialize, FromArgs)]
@@ -68,7 +42,7 @@ impl RemitsConfig {
         }
     }
 }
-/// `RemitsConfig` implements `Default`
+
 impl ::std::default::Default for RemitsConfig {
     fn default() -> Self {
         Self {
@@ -92,22 +66,14 @@ fn setup_logger(config_level: Option<String>, flag_level: Option<String>) {
     debug!("Log level set to {}", log_level);
 }
 
-async fn handle(db: Arc<Mutex<db::DB>>, conn: Connection) {
+async fn handle(db: Arc<Mutex<db::DB>>, mut conn: Connection) {
     debug!("accepting connection");
 
-    while let Some(result) = conn.next_request().await {
-        let frame = match result {
-            Ok(f) => f,
-            Err(e) => {
-                error!("could not read from socket: {}", e);
-                break;
-            }
-        };
-
-        let cmd = match parser::parse(&*frame) {
+    while let Some(res) = conn.next_request().await {
+        let cmd = match res {
             Ok(cmd) => cmd,
             Err(e) => {
-                conn.respond(e).await;
+                conn.respond(e.into()).await;
                 continue;
             }
         };
@@ -120,7 +86,7 @@ async fn handle(db: Arc<Mutex<db::DB>>, conn: Connection) {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut cfg: RemitsConfig = confy::load("remits")?;
     cfg.update_from_flags();
 
