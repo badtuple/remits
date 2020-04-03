@@ -96,9 +96,9 @@ fn read_command(bytes: BytesMut) -> Result<Command, Error> {
         LogList => Command::LogList,
         MessageAdd => parse_cbor!(MessageAdd, data),
         IteratorAdd => parse_cbor!(IteratorAdd, data),
-        //IteratorList => parse_cbor!(IteratorList, data),
-        //IteratorNext => parse_cbor!(IteratorNext, data),
-        _ => unimplemented!(),
+        IteratorList => parse_cbor!(IteratorList, data),
+        IteratorNext => parse_cbor!(IteratorNext, data),
+        IteratorDelete => parse_cbor!(IteratorDelete, data),
     };
 
     Ok(cmd)

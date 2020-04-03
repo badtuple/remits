@@ -7,8 +7,9 @@ pub enum Command {
     LogList,
     MessageAdd(MessageAdd),
     IteratorAdd(IteratorAdd),
-    IteratorList,
-    IteratorNext,
+    IteratorList(IteratorList),
+    IteratorDelete(IteratorDelete),
+    IteratorNext(IteratorNext),
 }
 
 #[derive(Deserialize)]
@@ -38,4 +39,22 @@ pub struct IteratorAdd {
     pub iterator_name: String,
     pub iterator_kind: String,
     pub iterator_func: String,
+}
+
+#[derive(Deserialize)]
+pub struct IteratorList {
+    pub log_name: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct IteratorNext {
+    pub iterator_name: String,
+    pub message_id: usize,
+    pub count: usize,
+}
+
+#[derive(Deserialize)]
+pub struct IteratorDelete {
+    pub log_name: String,
+    pub iterator_name: String,
 }

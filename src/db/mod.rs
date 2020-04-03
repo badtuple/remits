@@ -37,7 +37,7 @@ impl DB {
             LogAdd(commands::LogAdd { log_name }) => self.log_add(log_name),
             LogDelete(commands::LogDelete { log_name }) => self.log_delete(log_name),
             LogList => self.log_list(),
-            //ItrList(name) => self.itr_list(name),
+            IteratorList(commands::IteratorList { log_name }) => self.itr_list(log_name),
             MessageAdd(commands::MessageAdd { log_name, message }) => {
                 self.msg_add(log_name, message)
             }
@@ -48,20 +48,15 @@ impl DB {
                 iterator_func,
             }) => self.itr_add(log_name, iterator_name, iterator_kind, iterator_func),
             //ItrDel { log, name } => self.itr_del(log, name),
-            //ItrNext {
-            //name,
-            //msg_id,
-            //count,
-            //} => {
-            // TODO: This returns a Vec<Vec<u8>> in the happy path.
-            // But right now, other commands only return String types.
-            // For now, I'm not going to return the data.
-            // We'll need to do that as part of the protocol work.
-            //match self.itr_next(name, msg_id, count) {
-            //Ok(_data) => Ok("temporary placeholder for data".to_owned()),
-            //Err(e) => Err(e),
-            //}
-            _ => unimplemented!(),
+            IteratorNext(commands::IteratorNext {
+                iterator_name,
+                message_id,
+                count,
+            }) => self.itr_next(iterator_name, message_id, count),
+            IteratorDelete(commands::IteratorDelete {
+                log_name,
+                iterator_name,
+            }) => self.itr_del(log_name, iterator_name),
         }
     }
 
@@ -112,19 +107,17 @@ impl DB {
     }
 
     /// List all itrs attached to a log
-    fn itr_list(&mut self, name: String) -> Result<String, Error> {
-        if name == "" {
-            let out = self.manifest.itrs.keys().map(|key| key.to_string());
-            return Ok(out.collect::<Vec<String>>().join(","));
-        }
-        Ok(self
-            .manifest
-            .itrs
-            .iter()
-            .filter(|(_, itr)| itr.log == name)
-            .map(|(_, x)| x.name.clone())
-            .collect::<Vec<String>>()
-            .join(","))
+    fn itr_list(&mut self, name: Option<String>) -> Response {
+        let itrs = &self.manifest.itrs;
+        let out = match name {
+            Some(name) => itrs
+                .iter()
+                .filter(|(_, itr)| itr.log == name)
+                .map(|(_, x)| x.name.as_bytes().to_vec())
+                .collect(),
+            None => itrs.keys().map(|key| key.as_bytes().to_vec()).collect(),
+        };
+        Response::Data(out)
     }
 
     /// Adds a new unindexed iterator to a log
@@ -135,28 +128,28 @@ impl DB {
         }
     }
     // Delets an unused unindexed iterator to a log
-    fn itr_del(&mut self, log: String, name: String) -> Result<String, Error> {
-        self.manifest.del_itr(log, name)?;
-        Ok("ok".to_owned())
+    fn itr_del(&mut self, log: String, name: String) -> Response {
+        match self.manifest.del_itr(log, name) {
+            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Err(e) => e.into(),
+        }
     }
 
-    fn itr_next(
-        &mut self,
-        name: String,
-        msg_id: usize,
-        count: usize,
-    ) -> Result<Vec<Vec<u8>>, Error> {
+    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Response {
         let itr = match self.manifest.itrs.get(&name) {
             Some(itr) => itr,
-            None => return Err(Error::ItrDoesNotExist),
+            None => return Error::ItrDoesNotExist.into(),
         };
 
         let log = match self.logs.get(&itr.log) {
             Some(log) => log,
-            None => return Err(Error::LogDoesNotExist),
+            None => return Error::LogDoesNotExist.into(),
         };
 
-        itr.next(log, msg_id, count)
+        match itr.next(log, msg_id, count) {
+            Ok(d) => Response::Data(d),
+            Err(e) => e.into(),
+        }
     }
 }
 
