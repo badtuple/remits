@@ -24,6 +24,7 @@ async fn handle(db: Arc<Mutex<db::DB>>, mut conn: Connection) {
                 continue;
             }
         };
+        debug!("received command: {:?}", &cmd);
 
         let resp = db.lock().unwrap().exec(cmd);
         conn.respond(resp).await;

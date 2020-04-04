@@ -4,7 +4,7 @@ use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use bytes::Bytes;
 
@@ -27,6 +27,25 @@ macro_rules! should_respond_with {
     };
 }
 
+// returns Kind, Code, and Payload
+async fn send_req(
+    framer: &mut Framed<TcpStream, LengthDelimitedCodec>,
+    bytes: Vec<u8>,
+) -> (u8, u8, Vec<u8>) {
+    framer
+        .send(Bytes::from(bytes))
+        .await
+        .expect("could not send command");
+
+    let result = framer
+        .next()
+        .await
+        .expect("no response from remits")
+        .expect("could not understand response");
+
+    return (result[0], result[1], result[2..].to_vec());
+}
+
 async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
     let stream = TcpStream::connect(LOCAL_REMITS)
         .await
@@ -35,46 +54,143 @@ async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
     Framed::new(stream, LengthDelimitedCodec::new())
 }
 
+static OK_RESP: &[u8] = b"ok";
+
 #[tokio::test]
 async fn integration_tests() {
-    let mut framer = connect_to_remits().await;
-    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
+    let ref mut framer = connect_to_remits().await;
 
-    // second create should be a noop, but still respond with "ok"
-    should_respond_with!(framer, "LOG ADD test_log", b"+ok");
+    println!("test: should be able to add a log");
+    let (kind, code, payload) = send_req(framer, new_log_add_req("test")).await;
+    assert_eq!(kind, 0x01);
+    assert_eq!(code, 0x00);
+    assert_eq!(payload, OK_RESP);
 
-    // invalid iterator type
-    let itr_cmd = "ITR ADD test_log test_itr_bad NOT_A_VALID_TYPE \n return msg";
-    should_respond_with!(framer, itr_cmd, b"!ItrTypeInvalid");
+    println!("test: re-adding an existing log should be a noop and still return ok");
+    let (kind, code, payload) = send_req(framer, new_log_add_req("test")).await;
+    assert_eq!(kind, 0x01);
+    assert_eq!(code, 0x00);
+    assert_eq!(payload, OK_RESP);
 
-    // create a valid iterator
-    let itr_cmd = r"ITR ADD test_log test_itr MAP 
-        return msg";
-    should_respond_with!(framer, itr_cmd, b"+ok");
+    println!("test: invalid iterator types should return an error");
+    let (kind, code, payload) =
+        send_req(framer, new_itr_add_req("test", "itr", "NOT_A_VALID_TYPE")).await;
+    assert_eq!(kind, 0x03);
+    assert_eq!(code, 0x0B);
+    assert_eq!(payload, serde_cbor::to_vec(&"CouldNotReadPayload").unwrap());
 
-    // try to add invalid message pack
-    let msg_cmd = b"MSG ADD test_log \x93\x00\x2a".to_vec();
-    should_respond_with!(framer, msg_cmd, b"!MsgNotValidCbor");
+    println!("test: should be able to add an iterator");
+    let (kind, code, payload) = send_req(framer, new_itr_add_req("test", "itr", "map")).await;
+    assert_eq!(kind, 0x01);
+    assert_eq!(code, 0x00);
+    assert_eq!(payload, OK_RESP);
 
-    // add valid message
-    #[derive(Serialize)]
-    struct TestInput {
-        name: String,
+    println!("test: should not be able to send a message as invalid cbor");
+    let (kind, code, payload) =
+        send_req(framer, new_msg_add_req("test", b"\x93\x00\x2a".to_vec())).await;
+    assert_eq!(kind, 0x03);
+    assert_eq!(code, 0x03);
+    assert_eq!(payload, serde_cbor::to_vec(&"MsgNotValidCbor").unwrap());
+
+    println!("test: can add valid message");
+
+    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+    struct Msg {
         number: usize,
-        list: Vec<usize>,
+        word: String,
+    }
+    let test_msg = Msg {
+        number: 42,
+        word: "wat".into(),
+    };
+
+    let cbor = serde_cbor::to_vec(&test_msg).unwrap();
+    println!("{:?}", cbor);
+
+    let (kind, code, payload) = send_req(framer, new_msg_add_req("test", cbor.clone())).await;
+    assert_eq!(kind, 0x01);
+    assert_eq!(code, 0x00);
+    assert_eq!(payload, OK_RESP);
+
+    let (kind, code, payload) = send_req(framer, new_itr_next_req("itr", 0, 1)).await;
+    assert_eq!(kind, 0x02);
+    assert_eq!(code, 0x00);
+
+    // Remove byte length
+    let mut msg = &payload[4..];
+
+    let resp: Msg = serde_cbor::from_reader(&mut msg).unwrap();
+    assert_eq!(resp, test_msg)
+}
+
+fn new_log_add_req(name: &str) -> Vec<u8> {
+    #[derive(Serialize)]
+    struct Body {
+        log_name: String,
     }
 
-    let cbor = serde_cbor::to_vec(&TestInput {
-        name: "testing".to_owned(),
-        number: 42,
-        list: vec![1, 2, 3],
+    let mut body = vec![0x00, 0x01];
+    let req = serde_cbor::to_vec(&Body {
+        log_name: name.into(),
     })
     .unwrap();
+    body.extend(req);
+    body
+}
 
-    let mut msg_add_cmd = b"MSG ADD test_log ".to_vec();
-    msg_add_cmd.append(&mut cbor.clone());
-    should_respond_with!(framer, msg_add_cmd, b"+ok");
+fn new_itr_add_req(name: &str, itr_name: &str, typ: &str) -> Vec<u8> {
+    #[derive(Serialize)]
+    struct Body {
+        log_name: String,
+        iterator_name: String,
+        iterator_kind: String,
+        iterator_func: String,
+    }
 
-    let itr_next_cmd = b"ITR NEXT test_itr 0 1".to_vec();
-    should_respond_with!(framer, itr_next_cmd, &*cbor);
+    let mut body = vec![0x00, 0x05];
+    let req = serde_cbor::to_vec(&Body {
+        log_name: name.into(),
+        iterator_name: itr_name.into(),
+        iterator_kind: typ.into(),
+        iterator_func: "return msg".into(),
+    })
+    .unwrap();
+    body.extend(req);
+    body
+}
+
+fn new_msg_add_req(name: &str, message: Vec<u8>) -> Vec<u8> {
+    #[derive(Serialize)]
+    struct Body {
+        log_name: String,
+        message: Vec<u8>,
+    }
+
+    let mut body = vec![0x00, 0x04];
+    let req = serde_cbor::to_vec(&Body {
+        log_name: name.into(),
+        message,
+    })
+    .unwrap();
+    body.extend(req);
+    body
+}
+
+fn new_itr_next_req(name: &str, message_id: usize, count: usize) -> Vec<u8> {
+    #[derive(Serialize)]
+    struct Body {
+        iterator_name: String,
+        message_id: usize,
+        count: usize,
+    }
+
+    let mut body = vec![0x00, 0x07];
+    let req = serde_cbor::to_vec(&Body {
+        iterator_name: name.into(),
+        message_id,
+        count,
+    })
+    .unwrap();
+    body.extend(req);
+    body
 }

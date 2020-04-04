@@ -6,7 +6,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use crate::commands;
-use crate::commands::Command;
+use crate::commands::{Command, IteratorKind};
 use crate::errors::Error;
 use crate::protocol::Response;
 use logs::Log;
@@ -121,7 +121,7 @@ impl DB {
     }
 
     /// Adds a new unindexed iterator to a log
-    fn itr_add(&mut self, log: String, name: String, kind: String, func: String) -> Response {
+    fn itr_add(&mut self, log: String, name: String, kind: IteratorKind, func: String) -> Response {
         match self.manifest.add_itr(log, name, kind, func) {
             Ok(_) => Response::Info("ok".as_bytes().to_vec()),
             Err(e) => e.into(),

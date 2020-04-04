@@ -3,7 +3,8 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-use super::iters::{string_to_kind_unchecked, Itr};
+use super::iters::Itr;
+use crate::commands::IteratorKind;
 use crate::errors::Error;
 
 /// The Manifest is a file at the root of the database directory that is used
@@ -56,13 +57,13 @@ impl Manifest {
         &mut self,
         log: String,
         name: String,
-        kind: String,
+        kind: IteratorKind,
         func: String,
     ) -> Result<(), Error> {
         let itr = Itr {
             log,
             name: name.clone(),
-            kind: string_to_kind_unchecked(kind),
+            kind: kind,
             func,
         };
 
