@@ -156,12 +156,13 @@ impl DB {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::SystemTime;
 
     #[test]
     fn test_db_log_list() {
         let mut db = DB::new();
-        db.log_add("metric".to_owned());
-        db.log_add("test".to_owned());
+        db.log_add("metric".into());
+        db.log_add("test".into());
 
         let resp = db.log_list();
         match resp {
@@ -178,141 +179,128 @@ mod tests {
     #[test]
     fn test_db_log_show() {
         let mut db = DB::new();
-        db.log_add("test".to_owned());
-        let resp = db.log_show("test".to_owned());
+        db.log_add("test".into());
+        let resp = db.log_show("test".into());
+
+        let log = serde_cbor::to_vec(&manifest::LogRegistrant {
+            name: "test".into(),
+            created_at: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .expect("could not get system time")
+                .as_secs() as usize,
+        })
+        .expect("could not marshal comparison LogRegistrant");
 
         match resp {
-            Response::Data(bytes) => assert_eq!(*bytes[0], *"test".as_bytes()),
+            Response::Data(bytes) => assert_eq!(*bytes[0], *log),
             Response::Error(e) => panic!("error returned from log show: {:#?}", e),
             Response::Info(i) => panic!("info returned from log show: {:#?}", i),
         }
     }
 
-    //#[test]
-    //fn test_db_log_add() {
-    //let mut db = DB::new();
-    //let out = db.log_add("test".to_owned()).unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //let out2 = db.log_add("test".to_owned()).unwrap();
-    //assert_eq!(out2, "ok".to_owned());
-    //}
+    #[test]
+    fn test_db_log_add() {
+        let mut db = DB::new();
 
-    //#[test]
-    //fn test_db_msg_add() {
-    //let mut db = DB::new();
-    //let _ = db.log_add("test".to_owned()).unwrap();
+        match db.log_add("test".into()) {
+            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            _ => panic!("expected info to be returned"),
+        };
 
-    //Normal
-    //let msg = vec![0x19, 0x03, 0xE8];
-    //let out = db.msg_add("test".to_owned(), msg.clone()).unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //assert_eq!(db.logs.len(), 1);
-    //assert_eq!(db.logs["test"][0], msg.clone());
+        match db.log_add("test".into()) {
+            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            _ => panic!("expected info to be returned"),
+        };
+    }
 
-    //let out = db.msg_add("test".to_owned(), msg.clone()).unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //assert_eq!(db.logs.len(), 1);
-    //assert_eq!(db.logs["test"][1], msg.clone());
-    //}
+    #[test]
+    fn test_db_msg_add() {
+        let mut db = DB::new();
+        db.log_add("test".into());
 
-    //#[test]
-    //#[should_panic]
-    //fn test_db_msg_add_log_dne() {
-    //let mut db = DB::new();
-    //db.msg_add("test".to_owned(), "hello".as_bytes().to_vec())
-    //.unwrap();
-    //}
+        let msg = vec![0x19, 0x03, 0xE8];
+        match db.msg_add("test".into(), msg.clone()) {
+            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            _ => panic!("expected info to be returned"),
+        };
 
-    //#[test]
-    //fn test_db_log_del() {
-    //let mut db = DB::new();
-    //let _ = db.log_add("test".to_owned()).unwrap();
-    //let _ = db.manifest.add_itr(
-    //"test".to_owned(),
-    //"fun".to_owned(),
-    //"map".to_owned(),
-    //"func".to_owned(),
-    //);
-    //assert_eq!(db.manifest.logs.len(), 1);
-    //Normal
-    //let out = db.log_del("test".to_owned()).unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //assert_eq!(db.manifest.logs.len(), 0);
-    //Repeat
-    //let out = db.log_del("test".to_owned()).unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //Never existed
-    //let out = db.log_del("test1".to_owned()).unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //}
+        assert_eq!(db.logs.len(), 1);
+        assert_eq!(db.logs["test"][0], msg.clone());
+    }
 
-    //#[test]
-    //fn test_db_itr_list() {
-    //let mut db = DB::new();
-    //let _ = db.log_add("test".to_owned()).unwrap();
-    //let _ = db
-    //.itr_add(
-    //"test".to_owned(),
-    //"std_dev avg users".to_owned(),
-    //"map".to_owned(),
-    //"+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
-    //.to_owned(),
-    //)
-    //.unwrap();
-    //let _ = db
-    //.itr_add(
-    //"test2".to_owned(),
-    //"std_dev avg users2".to_owned(),
-    //"map".to_owned(),
-    //"+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
-    //.to_owned(),
-    //)
-    //.unwrap();
-    //let out = db.itr_list("test".to_owned()).unwrap();
-    //assert!(out.contains("std_dev avg users"));
-    //let out = db.itr_list("".to_owned()).unwrap();
-    //assert!(out.contains("std_dev avg users2"));
-    //}
+    #[test]
+    fn test_db_msg_add_log_dne() {
+        let mut db = DB::new();
+        match db.msg_add("test".into(), "hello".as_bytes().to_vec()) {
+            Response::Error(e) => (),
+            _ => panic!("expected response to be an error"),
+        }
+    }
 
-    //This test is not needed now. It is a wrapper for manifest.add_iter()
-    //#[test]
-    //fn test_db_itr_add() {
-    //let mut db = DB::new();
-    //let out = db
-    //.itr_add(
-    //"test".to_owned(),
-    //"std_dev avg users".to_owned(),
-    //"map".to_owned(),
-    //"+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+."
-    //.to_owned(),
-    //)
-    //.unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //assert_eq!(db.manifest.itrs.len(), 1);
-    //}
+    #[test]
+    fn test_db_log_del() {
+        let mut db = DB::new();
+        db.log_add("test".into());
+        db.manifest.add_itr(
+            "test".into(),
+            "fun".into(),
+            "map".into(),
+            "return msg".into(),
+        );
+        assert_eq!(db.manifest.logs.len(), 1);
 
-    //This test is not needed now. It is a wrapper for manifest.del_iter()
-    //#[test]
-    //fn test_db_itr_del() {
-    //let mut db = DB::new();
-    //let _ = db.itr_add(
-    //"test".to_owned(),
-    //"std_dev avg users".to_owned(),
-    //"map".to_owned(),
-    //"+[-->-[>>+>-----<<]<--<---]>-.>>>+.>>..+++[.>]<<<<.+++.------.<<-.>>>>+.".to_owned(),
-    //);
-    //let out = db
-    //.itr_del("test".to_owned(), "std_dev avg users".to_owned())
-    //.unwrap();
-    //assert_eq!(out, "ok".to_owned());
-    //assert_eq!(db.manifest.itrs.len(), 0);
-    //}
+        match db.log_delete("test".into()) {
+            Response::Info(i) => assert_eq!(&*i, "ok".as_bytes()),
+            _ => panic!("expected response to be info"),
+        };
+        assert_eq!(db.manifest.logs.len(), 0);
+    }
 
-    //This test is not needed now. if any logic other than match is added to exec we would add it here
-    //#[test]
-    //fn test_db_exec() {
-    //let mut db = DB::new();
-    //let out = db.exec(Command::LogAdd("test".to_owned())).unwrap();
-    //assert_eq!(out, "ok");
-    //}
+    #[test]
+    fn test_db_itr_list() {
+        let mut db = DB::new();
+        db.log_add("log".into());
+        db.itr_add("log".into(), "i1".into(), "map".into(), "return msg".into());
+        db.itr_add(
+            "log2".into(),
+            "i2".into(),
+            "map".into(),
+            "return msg".into(),
+        );
+        match db.itr_list(Some("log".into())) {
+            Response::Data(bytes) => assert_eq!(bytes[0], "i1".as_bytes()),
+            _ => panic!("expected itr_list to return data"),
+        };
+
+        match db.itr_list(None) {
+            Response::Data(bytes) => {
+                assert!(
+                    (bytes[0] == "i1".as_bytes() && bytes[1] == "i2".as_bytes())
+                        || (bytes[1] == "i1".as_bytes() && bytes[0] == "i2".as_bytes())
+                );
+            }
+            _ => panic!("expected itr_list to return data"),
+        };
+    }
+
+    #[test]
+    fn test_db_itr_add() {
+        let mut db = DB::new();
+        match db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into()) {
+            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            _ => panic!("expected itr_add to return info"),
+        };
+        assert_eq!(db.manifest.itrs.len(), 1);
+    }
+
+    #[test]
+    fn test_db_itr_del() {
+        let mut db = DB::new();
+        db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into());
+        match db.itr_del("log".into(), "i".into()) {
+            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            _ => panic!("expected itr_add to return info"),
+        };
+        assert_eq!(db.manifest.itrs.len(), 0);
+    }
 }

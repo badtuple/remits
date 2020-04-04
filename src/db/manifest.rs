@@ -32,7 +32,10 @@ impl Manifest {
             .entry(name.clone())
             .or_insert_with(|| LogRegistrant {
                 name,
-                created_at: SystemTime::now(),
+                created_at: SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("could not get system time")
+                    .as_secs() as usize,
             });
     }
     pub fn del_log(&mut self, name: String) {
@@ -102,7 +105,7 @@ impl Manifest {
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct LogRegistrant {
     pub name: String,
-    pub created_at: SystemTime,
+    pub created_at: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
