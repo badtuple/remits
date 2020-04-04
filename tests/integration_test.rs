@@ -9,51 +9,6 @@ use serde::{Deserialize, Serialize};
 use bytes::Bytes;
 
 static LOCAL_REMITS: &str = "localhost:4242";
-
-macro_rules! should_respond_with {
-    ($framer:expr, $bytes:expr, $resp:expr) => {
-        $framer
-            .send(Bytes::from($bytes))
-            .await
-            .expect("could not send command");
-
-        let result = $framer
-            .next()
-            .await
-            .expect("no response from remits")
-            .expect("could not understand response");
-
-        assert_eq!(&*result, $resp);
-    };
-}
-
-// returns Kind, Code, and Payload
-async fn send_req(
-    framer: &mut Framed<TcpStream, LengthDelimitedCodec>,
-    bytes: Vec<u8>,
-) -> (u8, u8, Vec<u8>) {
-    framer
-        .send(Bytes::from(bytes))
-        .await
-        .expect("could not send command");
-
-    let result = framer
-        .next()
-        .await
-        .expect("no response from remits")
-        .expect("could not understand response");
-
-    return (result[0], result[1], result[2..].to_vec());
-}
-
-async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
-    let stream = TcpStream::connect(LOCAL_REMITS)
-        .await
-        .expect("could not connect to localhost:4242");
-
-    Framed::new(stream, LengthDelimitedCodec::new())
-}
-
 static OK_RESP: &[u8] = b"ok";
 
 #[tokio::test]
@@ -193,4 +148,31 @@ fn new_itr_next_req(name: &str, message_id: usize, count: usize) -> Vec<u8> {
     .unwrap();
     body.extend(req);
     body
+}
+
+// returns Kind, Code, and Payload
+async fn send_req(
+    framer: &mut Framed<TcpStream, LengthDelimitedCodec>,
+    bytes: Vec<u8>,
+) -> (u8, u8, Vec<u8>) {
+    framer
+        .send(Bytes::from(bytes))
+        .await
+        .expect("could not send command");
+
+    let result = framer
+        .next()
+        .await
+        .expect("no response from remits")
+        .expect("could not understand response");
+
+    return (result[0], result[1], result[2..].to_vec());
+}
+
+async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
+    let stream = TcpStream::connect(LOCAL_REMITS)
+        .await
+        .expect("could not connect to localhost:4242");
+
+    Framed::new(stream, LengthDelimitedCodec::new())
 }
