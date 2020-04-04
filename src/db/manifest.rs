@@ -48,7 +48,7 @@ impl Manifest {
             .collect();
 
         for itr in to_be_deleted.iter() {
-            self.del_itr(name.clone(), itr.to_owned())
+            self.del_itr(name.clone(), itr.into())
                 .expect("Could not delete itrs associated with log");
         }
     }
@@ -133,49 +133,30 @@ mod tests {
     #[test]
     fn test_manifest_add_log() {
         let mut manifest = Manifest::new();
-        manifest.add_log("test".to_owned());
-        manifest.add_log("test2".to_owned());
-        manifest.add_log("test3".to_owned());
+        manifest.add_log("test".into());
+        manifest.add_log("test2".into());
+        manifest.add_log("test3".into());
         assert!(manifest.logs.contains_key("test"));
         assert!(manifest.logs.contains_key("test2"));
         assert!(manifest.logs.contains_key("test3"));
         assert_eq!(manifest.logs.contains_key("test1"), false);
 
         // This second add_log is here to make sure code does not panic
-        manifest.add_log("test".to_owned());
+        manifest.add_log("test".into());
     }
     #[test]
     fn test_manifest_add_itr() {
         let mut manifest = Manifest::new();
-        let _ = manifest.add_itr(
-            "test".to_owned(),
-            "fun".to_owned(),
-            "map".to_owned(),
-            "func".to_owned(),
-        );
-        let _ = manifest.add_itr(
-            "test".to_owned(),
-            "fun2".to_owned(),
-            "map".to_owned(),
-            "func".to_owned(),
-        );
-        let _ = manifest.add_itr(
-            "test".to_owned(),
-            "fun3".to_owned(),
-            "map".to_owned(),
-            "func".to_owned(),
-        );
+        let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
+        let _ = manifest.add_itr("test".into(), "fun2".into(), "map".into(), "func".into());
+        let _ = manifest.add_itr("test".into(), "fun3".into(), "map".into(), "func".into());
         assert!(manifest.itrs.contains_key("fun"));
         assert!(manifest.itrs.contains_key("fun2"));
         assert!(manifest.itrs.contains_key("fun3"));
         assert_eq!(manifest.logs.contains_key("fun1"), false);
 
-        let duplicate_error = manifest.add_itr(
-            "test".to_owned(),
-            "fun".to_owned(),
-            "map".to_owned(),
-            "func2".to_owned(),
-        );
+        let duplicate_error =
+            manifest.add_itr("test".into(), "fun".into(), "map".into(), "func2".into());
         assert_eq!(
             format!("{:?}", duplicate_error),
             format!("Err(ItrExistsWithSameName)")
@@ -186,31 +167,21 @@ mod tests {
     fn test_manifest_del_itr() {
         let mut manifest = Manifest::new();
         // Normal
-        let _ = manifest.add_itr(
-            "test".to_owned(),
-            "fun".to_owned(),
-            "map".to_owned(),
-            "func".to_owned(),
-        );
+        let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
         assert!(manifest.itrs.contains_key("fun"));
-        let _ = manifest.del_itr("test".to_owned(), "fun".to_owned());
+        let _ = manifest.del_itr("test".into(), "fun".into());
         assert_eq!(manifest.logs.contains_key("fun"), false);
 
         // Function doesnt exist log does
-        let does_not_exist_error = manifest.del_itr("test".to_owned(), "fun".to_owned());
+        let does_not_exist_error = manifest.del_itr("test".into(), "fun".into());
         assert_eq!(
             format!("{:?}", does_not_exist_error),
             format!("Err(ItrDoesNotExist)")
         );
         // Neither function or log exist
-        let _ = manifest.add_itr(
-            "test".to_owned(),
-            "fun".to_owned(),
-            "map".to_owned(),
-            "func".to_owned(),
-        );
+        let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
 
-        let log_does_not_exist_error = manifest.del_itr("test1".to_owned(), "fun".to_owned());
+        let log_does_not_exist_error = manifest.del_itr("test1".into(), "fun".into());
         assert_eq!(
             format!("{:?}", log_does_not_exist_error),
             format!("Err(ItrDoesNotExist)")

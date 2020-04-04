@@ -25,6 +25,7 @@ enum RequestCodes {
     IteratorAdd = 0x05,
     IteratorList = 0x06,
     IteratorNext = 0x07,
+    IteratorDelete = 0x08,
 }
 
 pub struct Connection {
