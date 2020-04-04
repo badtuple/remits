@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::SystemTime;
@@ -98,7 +99,7 @@ impl Manifest {
 }
 
 /// The Manifest entry for a Log
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct LogRegistrant {
     pub name: String,
     pub created_at: SystemTime,
