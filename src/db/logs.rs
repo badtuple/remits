@@ -1,4 +1,4 @@
-use super::errors::Error;
+use crate::errors::Error;
 use serde_cbor::{Error as CborError, Value as CborValue};
 use std::ops::Index;
 

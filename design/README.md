@@ -74,35 +74,5 @@ filtered set and not the entire Log while doing analysis.
 Clients communicate with Remits over a TCP connection.
 Once a connection is opened, the client can send frames of data over the wire.
 
-The first 32 bits of a frame is an unsigned 32 bit integer denoting the length
-of the data that follows it in bytes:
+Further information about the Protocol can be found in `design/protocol.md`
 
-```
-+- len: u32 -+----- data -----+
-| 0x0000000d |  LOG ADD mylog |
-+------------+----------------+
-```
-
-Since the data we are sending (`LOG ADD mylog`) is 13 bytes long, we send over
-the binary encoding of 13 (`0x0000000d`.)
-
-Each Frame can contain only 1 command.
-
-## Commands
-
-Ideally, Remits will have few commands. We should try to limit them as much as
-possible. Here's a list of commands I can think of right now, but this is very
-much a work in progress and flexible as the project proceeds:
-
-Command                                             | Description
-----------------------------------------------------|----------------
-`LOG SHOW <log name>`                                | Show metadata of a log
-`LOG ADD <log name>`                                | Create a new Log
-`LOG DEL <log name>`                                | Delete a Log
-`LOG LIST`                                | List all logs
-`MSG ADD <log name> <message binary>`               | Add a Message to a log
-`ITR ADD <log name> <iterator name> <iterator type> <lua function>` | Create an Iterator
-`ITR LIST <log name>`                                | List all itrs for log with name log_name
-`IDX ADD <log name> <iterator name> <iterator type> <lua function>` | Create an Indexed Iterator
-`ITR NXT <iterator name> <message offset> <count>`      | Get `count` Messages after a specific Offset. Offset `0` refers to the first Message, and Offest `-1` refers to the last Message.
-`ITR PRV <iterator name> <message offset> <count>`      | Get `count` Messages before a specific Offset. Offset `-1` refers to the last Message.
