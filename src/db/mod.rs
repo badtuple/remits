@@ -61,13 +61,9 @@ impl DB {
 
     /// List all logs in db
     fn log_list(&mut self) -> Response {
-        Response::Data(
-            self.manifest
-                .logs
-                .keys()
-                .map(|key| key.as_bytes().to_vec())
-                .collect(),
-        )
+        let logs: Vec<String> = self.manifest.logs.keys().cloned().collect();
+        let bytes = serde_cbor::to_vec(&logs).unwrap();
+        Response::Data(vec![bytes])
     }
 
     /// Displays information about a log
@@ -167,10 +163,12 @@ mod tests {
         let resp = db.log_list();
         match resp {
             Response::Data(bytes) => {
-                let first = &*bytes[0];
-                let secnd = &*bytes[1];
-                assert!(first == &*"test".as_bytes() || first == &*"metric".as_bytes());
-                assert!(secnd == &*"test".as_bytes() || secnd == &*"metric".as_bytes());
+                let out: Vec<String> = serde_cbor::from_slice(&*(bytes[0])).unwrap();
+                let l1 = "test".to_owned();
+                let l2 = "metric".to_owned();
+
+                assert!(out[0] == l1 || out[1] == l1);
+                assert!(out[1] == l2 || out[0] == l2);
             }
             _ => panic!("error returned from log list"),
         };
