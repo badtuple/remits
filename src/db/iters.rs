@@ -50,7 +50,7 @@ impl Itr {
                 };
                 let mut serializer = serde_cbor::Serializer::new(&mut buf);
                 match serde_transcode::transcode(deserializer, &mut serializer) {
-                    Ok(ok) => info!("printing ok: {:?}", ok),
+                    Ok(ok) => (),
                     Err(e) => {
                         debug!("error transcoding lua to msgpack: {:?} {:?}", e, value);
                         error = Some(Error::ErrReadingLuaResponse);

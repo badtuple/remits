@@ -12,6 +12,8 @@ use crate::protocol::Response;
 use logs::Log;
 use manifest::Manifest;
 
+const OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
+
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
 #[derive(Debug, PartialEq, Eq)]
@@ -61,13 +63,9 @@ impl DB {
 
     /// List all logs in db
     fn log_list(&mut self) -> Response {
-        Response::Data(
-            self.manifest
-                .logs
-                .keys()
-                .map(|key| key.as_bytes().to_vec())
-                .collect(),
-        )
+        let logs: Vec<String> = self.manifest.logs.keys().cloned().collect();
+        let bytes = serde_cbor::to_vec(&logs).unwrap();
+        Response::Data(vec![bytes])
     }
 
     /// Displays information about a log
@@ -81,7 +79,7 @@ impl DB {
     fn log_add(&mut self, name: String) -> Response {
         self.manifest.add_log(name.clone());
         self.logs.entry(name).or_insert_with(Log::new);
-        Response::Info("ok".as_bytes().to_vec())
+        Response::Info(OK_RESP.into())
     }
 
     /// Deletes a log from the DB
@@ -90,7 +88,7 @@ impl DB {
             l.remove_entry();
             self.manifest.del_log(name);
         };
-        Response::Info("ok".as_bytes().to_vec())
+        Response::Info(OK_RESP.into())
     }
 
     /// Adds a new message to a log
@@ -101,7 +99,7 @@ impl DB {
         }
 
         match l.unwrap().add_msg(msg) {
-            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
@@ -109,13 +107,16 @@ impl DB {
     /// List all itrs attached to a log
     fn itr_list(&mut self, name: Option<String>) -> Response {
         let itrs = &self.manifest.itrs;
-        let out = match name {
+        let out: Vec<Vec<u8>> = match name {
             Some(name) => itrs
                 .iter()
                 .filter(|(_, itr)| itr.log == name)
-                .map(|(_, x)| x.name.as_bytes().to_vec())
+                .map(|(_, x)| serde_cbor::to_vec(&x.name).unwrap())
                 .collect(),
-            None => itrs.keys().map(|key| key.as_bytes().to_vec()).collect(),
+            None => itrs
+                .keys()
+                .map(|x| serde_cbor::to_vec(x).unwrap())
+                .collect(),
         };
         Response::Data(out)
     }
@@ -123,14 +124,14 @@ impl DB {
     /// Adds a new unindexed iterator to a log
     fn itr_add(&mut self, log: String, name: String, kind: IteratorKind, func: String) -> Response {
         match self.manifest.add_itr(log, name, kind, func) {
-            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
     // Delets an unused unindexed iterator to a log
     fn itr_del(&mut self, log: String, name: String) -> Response {
         match self.manifest.del_itr(log, name) {
-            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
@@ -167,10 +168,12 @@ mod tests {
         let resp = db.log_list();
         match resp {
             Response::Data(bytes) => {
-                let first = &*bytes[0];
-                let secnd = &*bytes[1];
-                assert!(first == &*"test".as_bytes() || first == &*"metric".as_bytes());
-                assert!(secnd == &*"test".as_bytes() || secnd == &*"metric".as_bytes());
+                let out: Vec<String> = serde_cbor::from_slice(&*(bytes[0])).unwrap();
+                let l1 = "test".to_owned();
+                let l2 = "metric".to_owned();
+
+                assert!(out[0] == l1 || out[1] == l1);
+                assert!(out[1] == l2 || out[0] == l2);
             }
             _ => panic!("error returned from log list"),
         };
@@ -203,12 +206,12 @@ mod tests {
         let mut db = DB::new();
 
         match db.log_add("test".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected info to be returned"),
         };
 
         match db.log_add("test".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected info to be returned"),
         };
     }
@@ -220,7 +223,7 @@ mod tests {
 
         let msg = vec![0x19, 0x03, 0xE8];
         match db.msg_add("test".into(), msg.clone()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected info to be returned"),
         };
 
@@ -250,7 +253,7 @@ mod tests {
         assert_eq!(db.manifest.logs.len(), 1);
 
         match db.log_delete("test".into()) {
-            Response::Info(i) => assert_eq!(&*i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(&*i, OK_RESP),
             _ => panic!("expected response to be info"),
         };
         assert_eq!(db.manifest.logs.len(), 0);
@@ -268,15 +271,20 @@ mod tests {
             "return msg".into(),
         );
         match db.itr_list(Some("log".into())) {
-            Response::Data(bytes) => assert_eq!(bytes[0], "i1".as_bytes()),
+            Response::Data(bytes) => {
+                let out: String = serde_cbor::from_slice(&*(bytes[0])).unwrap();
+                assert_eq!(out, "i1".to_owned());
+            }
             _ => panic!("expected itr_list to return data"),
         };
 
         match db.itr_list(None) {
             Response::Data(bytes) => {
+                let first: String = serde_cbor::from_slice(&*(bytes[0])).unwrap();
+                let secnd: String = serde_cbor::from_slice(&*(bytes[1])).unwrap();
                 assert!(
-                    (bytes[0] == "i1".as_bytes() && bytes[1] == "i2".as_bytes())
-                        || (bytes[1] == "i1".as_bytes() && bytes[0] == "i2".as_bytes())
+                    (first == "i1".to_owned() && secnd == "i2".to_owned())
+                        || (secnd == "i1".to_owned() && first == "i2".to_owned())
                 );
             }
             _ => panic!("expected itr_list to return data"),
@@ -287,7 +295,7 @@ mod tests {
     fn test_db_itr_add() {
         let mut db = DB::new();
         match db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
         };
         assert_eq!(db.manifest.itrs.len(), 1);
@@ -298,7 +306,7 @@ mod tests {
         let mut db = DB::new();
         db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into());
         match db.itr_del("log".into(), "i".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
         };
         assert_eq!(db.manifest.itrs.len(), 0);

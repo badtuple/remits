@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use bytes::Bytes;
 
 static LOCAL_REMITS: &str = "localhost:4242";
-static OK_RESP: &[u8] = b"ok";
+static OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
 #[tokio::test]
 async fn integration_tests() {
@@ -75,7 +75,13 @@ async fn integration_tests() {
     let mut msg = &payload[4..];
 
     let resp: Msg = serde_cbor::from_reader(&mut msg).unwrap();
-    assert_eq!(resp, test_msg)
+    assert_eq!(resp, test_msg);
+
+    let (kind, code, payload) = send_req(framer, new_log_list_req()).await;
+    assert_eq!(kind, 0x02);
+    assert_eq!(code, 0x00);
+    let out: Vec<String> = serde_cbor::from_slice(&payload[4..]).unwrap();
+    assert_eq!(out, vec!("test"));
 }
 
 fn new_log_add_req(name: &str) -> Vec<u8> {
@@ -129,6 +135,10 @@ fn new_msg_add_req(name: &str, message: Vec<u8>) -> Vec<u8> {
     .unwrap();
     body.extend(req);
     body
+}
+
+fn new_log_list_req() -> Vec<u8> {
+    vec![0x00, 0x03]
 }
 
 fn new_itr_next_req(name: &str, message_id: usize, count: usize) -> Vec<u8> {
