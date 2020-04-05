@@ -107,13 +107,16 @@ impl DB {
     /// List all itrs attached to a log
     fn itr_list(&mut self, name: Option<String>) -> Response {
         let itrs = &self.manifest.itrs;
-        let out = match name {
+        let out: Vec<Vec<u8>> = match name {
             Some(name) => itrs
                 .iter()
                 .filter(|(_, itr)| itr.log == name)
-                .map(|(_, x)| x.name.as_bytes().to_vec())
+                .map(|(_, x)| serde_cbor::to_vec(&x.name).unwrap())
                 .collect(),
-            None => itrs.keys().map(|key| key.as_bytes().to_vec()).collect(),
+            None => itrs
+                .keys()
+                .map(|x| serde_cbor::to_vec(x).unwrap())
+                .collect(),
         };
         Response::Data(out)
     }
@@ -268,15 +271,20 @@ mod tests {
             "return msg".into(),
         );
         match db.itr_list(Some("log".into())) {
-            Response::Data(bytes) => assert_eq!(bytes[0], "i1".as_bytes()),
+            Response::Data(bytes) => {
+                let out: String = serde_cbor::from_slice(&*(bytes[0])).unwrap();
+                assert_eq!(out, "i1".to_owned());
+            }
             _ => panic!("expected itr_list to return data"),
         };
 
         match db.itr_list(None) {
             Response::Data(bytes) => {
+                let first: String = serde_cbor::from_slice(&*(bytes[0])).unwrap();
+                let secnd: String = serde_cbor::from_slice(&*(bytes[1])).unwrap();
                 assert!(
-                    (bytes[0] == "i1".as_bytes() && bytes[1] == "i2".as_bytes())
-                        || (bytes[1] == "i1".as_bytes() && bytes[0] == "i2".as_bytes())
+                    (first == "i1".to_owned() && secnd == "i2".to_owned())
+                        || (secnd == "i1".to_owned() && first == "i2".to_owned())
                 );
             }
             _ => panic!("expected itr_list to return data"),
