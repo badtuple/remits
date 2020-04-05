@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use bytes::Bytes;
 
 static LOCAL_REMITS: &str = "localhost:4242";
-static OK_RESP: &[u8] = b"ok";
+static OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
 #[tokio::test]
 async fn integration_tests() {

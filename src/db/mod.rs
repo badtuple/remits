@@ -12,6 +12,8 @@ use crate::protocol::Response;
 use logs::Log;
 use manifest::Manifest;
 
+const OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
+
 // Temporarily, everything will be done in memory until we're happy with the
 // interface.
 #[derive(Debug, PartialEq, Eq)]
@@ -77,7 +79,7 @@ impl DB {
     fn log_add(&mut self, name: String) -> Response {
         self.manifest.add_log(name.clone());
         self.logs.entry(name).or_insert_with(Log::new);
-        Response::Info("ok".as_bytes().to_vec())
+        Response::Info(OK_RESP.into())
     }
 
     /// Deletes a log from the DB
@@ -86,7 +88,7 @@ impl DB {
             l.remove_entry();
             self.manifest.del_log(name);
         };
-        Response::Info("ok".as_bytes().to_vec())
+        Response::Info(OK_RESP.into())
     }
 
     /// Adds a new message to a log
@@ -97,7 +99,7 @@ impl DB {
         }
 
         match l.unwrap().add_msg(msg) {
-            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
@@ -119,14 +121,14 @@ impl DB {
     /// Adds a new unindexed iterator to a log
     fn itr_add(&mut self, log: String, name: String, kind: IteratorKind, func: String) -> Response {
         match self.manifest.add_itr(log, name, kind, func) {
-            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
     // Delets an unused unindexed iterator to a log
     fn itr_del(&mut self, log: String, name: String) -> Response {
         match self.manifest.del_itr(log, name) {
-            Ok(_) => Response::Info("ok".as_bytes().to_vec()),
+            Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
@@ -201,12 +203,12 @@ mod tests {
         let mut db = DB::new();
 
         match db.log_add("test".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected info to be returned"),
         };
 
         match db.log_add("test".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected info to be returned"),
         };
     }
@@ -218,7 +220,7 @@ mod tests {
 
         let msg = vec![0x19, 0x03, 0xE8];
         match db.msg_add("test".into(), msg.clone()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected info to be returned"),
         };
 
@@ -248,7 +250,7 @@ mod tests {
         assert_eq!(db.manifest.logs.len(), 1);
 
         match db.log_delete("test".into()) {
-            Response::Info(i) => assert_eq!(&*i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(&*i, OK_RESP),
             _ => panic!("expected response to be info"),
         };
         assert_eq!(db.manifest.logs.len(), 0);
@@ -285,7 +287,7 @@ mod tests {
     fn test_db_itr_add() {
         let mut db = DB::new();
         match db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
         };
         assert_eq!(db.manifest.itrs.len(), 1);
@@ -296,7 +298,7 @@ mod tests {
         let mut db = DB::new();
         db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into());
         match db.itr_del("log".into(), "i".into()) {
-            Response::Info(i) => assert_eq!(i, "ok".as_bytes()),
+            Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
         };
         assert_eq!(db.manifest.itrs.len(), 0);
