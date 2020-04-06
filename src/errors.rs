@@ -26,6 +26,7 @@ pub enum Error {
     ItrFuncNotUtf8 = 0x0F,
     ItrTypeInvalid = 0x10,
     MsgIdNotNumber = 0x11,
+    MsgFieldNotOfTypeBinary = 0x12,
 }
 
 impl Error {
