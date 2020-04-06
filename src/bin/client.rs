@@ -60,7 +60,7 @@ impl App<'_> {
     fn update_input_screen(&mut self) {
         self.input = match self.commands[self.selected.unwrap_or_default()] {
             "LOG ADD" => {
-                let skeleton = messages::AddLogBody::default();
+                let skeleton = messages::AddLogBody::new("");
                 serde_json::to_string(&skeleton).unwrap()
             },
             "MSG ADD" => String::new(),

@@ -22,7 +22,7 @@ impl AddLogBody {
         body.extend(req);
         body
     }
-    fn new(name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         let mut body = vec![0x00, 0x01];
         AddLogBody {
             log_name: name.into(),
