@@ -39,9 +39,10 @@ impl DB {
             LogDelete(commands::LogDelete { log_name }) => self.log_delete(log_name),
             LogList => self.log_list(),
             IteratorList(commands::IteratorList { log_name }) => self.itr_list(log_name),
-            MessageAdd(commands::MessageAdd { log_name, message }) => {
-                self.msg_add(log_name, message)
-            }
+            MessageAdd(commands::MessageAdd { log_name, message }) => match message {
+                serde_cbor::Value::Bytes(m) => self.msg_add(log_name, m),
+                _ => Error::MsgFieldNotOfTypeBinary.into(),
+            },
             IteratorAdd(commands::IteratorAdd {
                 log_name,
                 iterator_name,

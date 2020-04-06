@@ -31,7 +31,7 @@ pub struct LogDelete {
 #[derive(Deserialize, Debug)]
 pub struct MessageAdd {
     pub log_name: String,
-    pub message: Vec<u8>,
+    pub message: serde_cbor::Value,
 }
 
 #[derive(Deserialize, Debug)]

@@ -124,13 +124,13 @@ fn new_msg_add_req(name: &str, message: Vec<u8>) -> Vec<u8> {
     #[derive(Serialize)]
     struct Body {
         log_name: String,
-        message: Vec<u8>,
+        message: serde_cbor::Value,
     }
 
     let mut body = vec![0x00, 0x04];
     let req = serde_cbor::to_vec(&Body {
         log_name: name.into(),
-        message,
+        message: serde_cbor::Value::Bytes(message),
     })
     .unwrap();
     body.extend(req);
