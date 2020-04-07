@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Clippy
+      run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
     - name: Build
       run: cargo build --bin remits --verbose
     - name: Run server
