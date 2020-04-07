@@ -19,8 +19,6 @@ jobs:
       run: rustfmt --check --edition 2018 ./src/**/*.rs
     - name: Clippy
       run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
-
-# echo ./src/**/*.rs
     - name: Run server
       run: cargo run &
     - name: Run tests
