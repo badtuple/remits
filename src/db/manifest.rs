@@ -63,7 +63,7 @@ impl Manifest {
         let itr = Itr {
             log,
             name: name.clone(),
-            kind: kind,
+            kind,
             func,
         };
 
@@ -160,7 +160,7 @@ mod tests {
             manifest.add_itr("test".into(), "fun".into(), "map".into(), "func2".into());
         assert_eq!(
             format!("{:?}", duplicate_error),
-            format!("Err(ItrExistsWithSameName)")
+            "Err(ItrExistsWithSameName)".to_string()
         );
     }
 
@@ -177,7 +177,7 @@ mod tests {
         let does_not_exist_error = manifest.del_itr("test".into(), "fun".into());
         assert_eq!(
             format!("{:?}", does_not_exist_error),
-            format!("Err(ItrDoesNotExist)")
+            "Err(ItrDoesNotExist)".to_string()
         );
         // Neither function or log exist
         let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
@@ -185,7 +185,7 @@ mod tests {
         let log_does_not_exist_error = manifest.del_itr("test1".into(), "fun".into());
         assert_eq!(
             format!("{:?}", log_does_not_exist_error),
-            format!("Err(ItrDoesNotExist)")
+            "Err(ItrDoesNotExist)".to_string()
         );
     }
 }

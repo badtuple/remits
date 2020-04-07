@@ -30,8 +30,8 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn to_bytes(self) -> Vec<u8> {
-        serde_cbor::to_vec(&self).unwrap()
+    pub fn to_bytes(&self) -> Vec<u8> {
+        serde_cbor::to_vec(self).unwrap()
     }
 }
 

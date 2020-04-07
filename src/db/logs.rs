@@ -14,7 +14,7 @@ impl Log {
 
     pub fn add_msg(&mut self, msg: Vec<u8>) -> Result<(), Error> {
         let res: Result<CborValue, CborError> = serde_cbor::from_reader(&mut &*msg);
-        if let Err(e) = res {
+        if let Err(_e) = res {
             return Err(Error::MsgNotValidCbor);
         }
         self.data.push(msg);
@@ -47,8 +47,6 @@ mod tests {
     fn test_add_invalid_cbor_msg() {
         let mut log = Log::new();
         let buf = vec![0x1a, 0x01, 0x02];
-        if let Ok(_) = log.add_msg(buf) {
-            panic!("invalid messagepack was allowed into log");
-        };
+        assert_eq!(log.add_msg(buf).is_err(), true);
     }
 }
