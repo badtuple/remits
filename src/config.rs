@@ -52,12 +52,10 @@ impl ::std::default::Default for RemitsConfig {
 }
 
 fn setup_logger(config_level: Option<String>, flag_level: Option<String>) {
-    let log_level = &flag_level.unwrap_or(
-        config_level
+    let log_level = &flag_level.unwrap_or_else(|| config_level
             .as_ref()
             .unwrap_or(&"info".to_owned())
-            .to_string(),
-    );
+            .to_string());
     Builder::new()
         .parse_filters(log_level)
         .target(Target::Stdout)

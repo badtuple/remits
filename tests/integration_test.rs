@@ -13,7 +13,7 @@ static OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
 #[tokio::test]
 async fn integration_tests() {
-    let ref mut framer = connect_to_remits().await;
+    let framer = &mut (connect_to_remits().await);
 
     println!("test: should be able to add a log");
     let (kind, code, payload) = send_req(framer, new_log_add_req("test")).await;
@@ -176,7 +176,7 @@ async fn send_req(
         .expect("no response from remits")
         .expect("could not understand response");
 
-    return (result[0], result[1], result[2..].to_vec());
+    (result[0], result[1], result[2..].to_vec())
 }
 
 async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {

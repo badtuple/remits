@@ -229,14 +229,14 @@ mod tests {
         };
 
         assert_eq!(db.logs.len(), 1);
-        assert_eq!(db.logs["test"][0], msg.clone());
+        assert_eq!(db.logs["test"][0], msg);
     }
 
     #[test]
     fn test_db_msg_add_log_dne() {
         let mut db = DB::new();
-        match db.msg_add("test".into(), "hello".as_bytes().to_vec()) {
-            Response::Error(e) => (),
+        match db.msg_add("test".into(), b"hello".to_vec()) {
+            Response::Error(_e) => (),
             _ => panic!("expected response to be an error"),
         }
     }
@@ -250,7 +250,7 @@ mod tests {
             "fun".into(),
             "map".into(),
             "return msg".into(),
-        );
+        ).unwrap();// its a test
         assert_eq!(db.manifest.logs.len(), 1);
 
         match db.log_delete("test".into()) {
@@ -284,8 +284,8 @@ mod tests {
                 let first: String = serde_cbor::from_slice(&*(bytes[0])).unwrap();
                 let secnd: String = serde_cbor::from_slice(&*(bytes[1])).unwrap();
                 assert!(
-                    (first == "i1".to_owned() && secnd == "i2".to_owned())
-                        || (secnd == "i1".to_owned() && first == "i2".to_owned())
+                    (first == "i1" && secnd == "i2")
+                        || (secnd == "i1" && first == "i2")
                 );
             }
             _ => panic!("expected itr_list to return data"),

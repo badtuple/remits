@@ -42,8 +42,8 @@ async fn main() {
                     Some(result) => {
                         let output_str = &result.unwrap_or_else(|_| "".into());
                         let output = std::str::from_utf8(output_str).unwrap();
-                        let res = format!("{}", output);
-                        match res.chars().nth(0) {
+                        let res = output.to_string();
+                        match res.chars().next() {
                             Some(x) => match x {
                                 '+' => println!("{} {}", "Success".green(), &res[1..]),
                                 '!' => println!("{} {}", "Error".red(), &res[1..]),

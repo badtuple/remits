@@ -35,7 +35,7 @@ impl Itr {
                     }
                 };
 
-                globals.set("msg", lua_msg);
+                globals.set("msg", lua_msg).expect("could not set global");
                 let res = ctx.load(&*self.func).eval::<rlua::Value>();
                 if let Err(e) = res {
                     debug!("error running lua: {:?} {:?}", e, msg);
@@ -50,13 +50,14 @@ impl Itr {
                 };
                 let mut serializer = serde_cbor::Serializer::new(&mut buf);
                 match serde_transcode::transcode(deserializer, &mut serializer) {
-                    Ok(ok) => (),
+                    Ok(_ok) => (),
                     Err(e) => {
                         debug!("error transcoding lua to msgpack: {:?} {:?}", e, value);
                         error = Some(Error::ErrReadingLuaResponse);
                     }
                 };
 
+            
                 output.push(buf);
             }
         });
