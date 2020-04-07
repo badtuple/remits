@@ -247,7 +247,6 @@ mod tests {
         db.log_add("test".into());
         db.manifest
             .add_itr(
-                
                 "test".into(),
                 "fun".into(),
                 "map".into(),
