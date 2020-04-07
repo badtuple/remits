@@ -47,6 +47,6 @@ mod tests {
     fn test_add_invalid_cbor_msg() {
         let mut log = Log::new();
         let buf = vec![0x1a, 0x01, 0x02];
-        assert_eq!(log.add_msg(buf).is_err(),true);
+        assert_eq!(log.add_msg(buf).is_err(), true);
     }
 }

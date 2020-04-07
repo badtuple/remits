@@ -57,7 +57,6 @@ impl Itr {
                     }
                 };
 
-            
                 output.push(buf);
             }
         });

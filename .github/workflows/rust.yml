@@ -13,10 +13,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Clippy
-      run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
     - name: Build
       run: cargo build --bin remits --verbose
+    - name: Fmt
+      run: rustfmt --check --edition 2018 ./src/**/*.rs
+    - name: Clippy
+      run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
+
+# echo ./src/**/*.rs
     - name: Run server
       run: cargo run &
     - name: Run tests

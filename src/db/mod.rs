@@ -245,12 +245,15 @@ mod tests {
     fn test_db_log_del() {
         let mut db = DB::new();
         db.log_add("test".into());
-        db.manifest.add_itr(
-            "test".into(),
-            "fun".into(),
-            "map".into(),
-            "return msg".into(),
-        ).unwrap();// its a test
+        db.manifest
+            .add_itr(
+                
+                "test".into(),
+                "fun".into(),
+                "map".into(),
+                "return msg".into(),
+            )
+            .unwrap(); // its a test
         assert_eq!(db.manifest.logs.len(), 1);
 
         match db.log_delete("test".into()) {
@@ -283,10 +286,7 @@ mod tests {
             Response::Data(bytes) => {
                 let first: String = serde_cbor::from_slice(&*(bytes[0])).unwrap();
                 let secnd: String = serde_cbor::from_slice(&*(bytes[1])).unwrap();
-                assert!(
-                    (first == "i1" && secnd == "i2")
-                        || (secnd == "i1" && first == "i2")
-                );
+                assert!((first == "i1" && secnd == "i2") || (secnd == "i1" && first == "i2"));
             }
             _ => panic!("expected itr_list to return data"),
         };
