@@ -17,7 +17,7 @@ pub fn new_log_add_req(name: &str) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec().to_vec();
     size.extend(body);
     size
 }
@@ -34,7 +34,7 @@ pub fn new_log_show_req(name: &str) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -51,12 +51,12 @@ pub fn new_log_del_req(name: &str) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
 
-pub fn new_itr_add_req(name: &str, itr_name: &str, typ: &str) -> Vec<u8> {
+pub fn new_iterator_add_req(name: &str, iterator_name: &str, typ: &str) -> Vec<u8> {
     #[derive(Serialize)]
     struct Body {
         log_name: String,
@@ -68,13 +68,13 @@ pub fn new_itr_add_req(name: &str, itr_name: &str, typ: &str) -> Vec<u8> {
     let mut body = vec![0x00, 0x05];
     let req = serde_cbor::to_vec(&Body {
         log_name: name.into(),
-        iterator_name: itr_name.into(),
+        iterator_name: iterator_name.into(),
         iterator_kind: typ.into(),
         iterator_func: "return msg".into(),
     })
     .unwrap();
     body.extend(req);
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -93,24 +93,24 @@ pub fn new_msg_add_req(name: &str, message: Vec<u8>) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
 
 pub fn new_log_list_req() -> Vec<u8> {
     let body = vec![0x00, 0x03];
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
-pub fn new_itr_list_req() -> Vec<u8> {
+pub fn new_iterator_list_req() -> Vec<u8> {
     let body = vec![0x00, 0x06];
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
-pub fn new_itr_next_req(name: &str, message_id: usize, count: usize) -> Vec<u8> {
+pub fn new_iterator_next_req(name: &str, message_id: usize, count: usize) -> Vec<u8> {
     #[derive(Serialize)]
     struct Body {
         iterator_name: String,
@@ -126,7 +126,7 @@ pub fn new_itr_next_req(name: &str, message_id: usize, count: usize) -> Vec<u8> 
     })
     .unwrap();
     body.extend(req);
-    let mut size = transform_size_to_array_of_u8(body.len());
+    let mut size = body.len().to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -137,7 +137,7 @@ pub fn send_req(bytes: Vec<u8>) -> (u8, u8, Vec<u8>) {
 
     let mut buffer = [0; 4];
     stream.read_exact(&mut buffer).unwrap();
-    let size = as_u32_be(buffer);
+    let size = u32::from_be_bytes(buffer);
     let mut output_buffer = vec![0 as u8; (size) as usize].as_slice().to_owned();
     stream.read_exact(&mut output_buffer).expect("peek failed");
 
@@ -158,17 +158,3 @@ pub fn connect_to_remits() -> TcpStream {
     }
 }
 
-fn transform_size_to_array_of_u8(x: usize) -> Vec<u8> {
-    let b1: u8 = ((x >> 24) & 0xff) as u8;
-    let b2: u8 = ((x >> 16) & 0xff) as u8;
-    let b3: u8 = ((x >> 8) & 0xff) as u8;
-    let b4: u8 = (x & 0xff) as u8;
-    [b1, b2, b3, b4].to_vec()
-}
-
-fn as_u32_be(array: [u8; 4]) -> u32 {
-    ((array[0] as u32) << 24)
-        + ((array[1] as u32) << 16)
-        + ((array[2] as u32) << 8)
-        + (array[3] as u32)
-}

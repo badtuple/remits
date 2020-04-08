@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 mod protocol;
 
 fn main() {
-    let matches = clap_app!(myapp =>
+    let matches = clap_app!(remitscli =>
         (version: "0.1")
         (about: "Interact with remits")
         (@arg debug: -d ... "Sets the level of debugging information")
@@ -26,18 +26,18 @@ fn main() {
             (about: "Add message to log")
             (@arg msg: -m +takes_value "Value of msg to add")
         )
-        (@subcommand itr_add =>
-            (about: "Add itr to log")
-            (@arg log: -l +required +takes_value "Value of log to add itr")
-            (@arg itr_name: -n +required +takes_value "choose itr name")
-            (@arg itr_type: -t +required +takes_value "select itr type")
+        (@subcommand iterator_add =>
+            (about: "Add iterator to log")
+            (@arg log: -l +required +takes_value "Value of log to add iterator")
+            (@arg iterator_name: -n +required +takes_value "choose iterator name")
+            (@arg iterator_type: -t +required +takes_value "select iterator type")
         )
-        (@subcommand itr_list =>
-            (about: "List all itrs")
+        (@subcommand iterator_list =>
+            (about: "List all iterators")
         )
-        (@subcommand itr_next =>
+        (@subcommand iterator_next =>
             (about: "Get up to <count> messages from an Iterator")
-            (@arg itr_name: -n +required +takes_value "itr name")
+            (@arg iterator_name: -n +required +takes_value "iterator name")
             (@arg message_id: -i +required +takes_value "message_id")
             (@arg count: -c +required +takes_value "count")
         )
@@ -61,18 +61,18 @@ fn main() {
 
             protocol::new_msg_add_req("test", cbor)
         }
-        ("itr_add", Some(args)) => {
+        ("iterator_add", Some(args)) => {
             let log = args.value_of("log").unwrap();
-            let itr_name = args.value_of("itr_name").unwrap();
-            let itr_type = args.value_of("itr_type").unwrap();
-            protocol::new_itr_add_req(log, itr_name, itr_type)
+            let iterator_name = args.value_of("iterator_name").unwrap();
+            let iterator_type = args.value_of("iterator_type").unwrap();
+            protocol::new_iterator_add_req(log, iterator_name, iterator_type)
         }
-        ("itr_list", Some(_)) => protocol::new_itr_list_req(),
-        ("itr_next", Some(args)) => {
-            let itr_name = args.value_of("itr_name").unwrap();
+        ("iterator_list", Some(_)) => protocol::new_iterator_list_req(),
+        ("iterator_next", Some(args)) => {
+            let iterator_name = args.value_of("iterator_name").unwrap();
             let message_id = args.value_of("message_id").unwrap().parse().unwrap();
             let count = args.value_of("count").unwrap().parse().unwrap();
-            protocol::new_itr_next_req(itr_name, message_id, count)
+            protocol::new_iterator_next_req(iterator_name, message_id, count)
         }
         _ => panic!("{}", "Type help, -h, or --help"),
     };
