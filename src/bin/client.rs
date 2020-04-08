@@ -5,55 +5,38 @@ mod protocol;
 fn main() {
     let matches = clap_app!(myapp =>
         (version: "0.1")
-        (author: "Andrew Scibek")
         (about: "Interact with remits")
         (@arg debug: -d ... "Sets the level of debugging information")
         (@subcommand log_add =>
             (about: "Add log")
-            (version: "0.1")
-            (author: "Andrew Scibek")
             (@arg log_name: -n +required +takes_value "Log name to add")
         )
         (@subcommand log_list =>
             (about: "List logs")
-            (version: "0.1")
-            (author: "Andrew Scibek")
         )
         (@subcommand log_del =>
             (about: "Delete log")
-            (version: "0.1")
-            (author: "Andrew Scibek")
             (@arg log_name: -n +required +takes_value "Log name to delete")
         )
         (@subcommand log_show =>
             (about: "Show metadata of log")
-            (version: "0.1")
-            (author: "Andrew Scibek")
             (@arg log_name: -n +required +takes_value "Log name to see metadata")
         )
         (@subcommand msg_add =>
             (about: "Add message to log")
-            (version: "0.1")
-            (author: "Andrew Scibek")
             (@arg msg: -m +takes_value "Value of msg to add")
         )
         (@subcommand itr_add =>
             (about: "Add itr to log")
-            (version: "0.1")
-            (author: "Andrew Scibek")
             (@arg log: -l +required +takes_value "Value of log to add itr")
             (@arg itr_name: -n +required +takes_value "choose itr name")
             (@arg itr_type: -t +required +takes_value "select itr type")
         )
         (@subcommand itr_list =>
             (about: "List all itrs")
-            (version: "0.1")
-            (author: "Andrew Scibek")
         )
         (@subcommand itr_next =>
             (about: "Get up to <count> messages from an Iterator")
-            (version: "0.1")
-            (author: "Andrew Scibek")
             (@arg itr_name: -n +required +takes_value "itr name")
             (@arg message_id: -i +required +takes_value "message_id")
             (@arg count: -c +required +takes_value "count")
@@ -99,7 +82,7 @@ fn main() {
         println!("Response from remits {:?}", output.2);
         panic!("Bad request");
     }
-    if output.0 == 0x01{
+    if output.0 == 0x01 {
         println!("Info response");
     }
     if output.0 == 0x02 {

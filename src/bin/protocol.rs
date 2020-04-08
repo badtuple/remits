@@ -1,8 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
-use serde::{Serialize};
-
+use serde::Serialize;
 
 pub static OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
