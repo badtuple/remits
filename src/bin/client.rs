@@ -76,6 +76,7 @@ fn main() {
         }
         _ => panic!("{}", "Type help, -h, or --help"),
     };
+    println!("request to remits {:?}", request);
     let output = protocol::send_req(request);
     if output.0 == 0x03 {
         println!("ERROR OCCURED");

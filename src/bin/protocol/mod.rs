@@ -17,7 +17,7 @@ pub fn new_log_add_req(name: &str) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = body.len().to_be_bytes().to_vec().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -34,7 +34,7 @@ pub fn new_log_show_req(name: &str) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -51,7 +51,7 @@ pub fn new_log_del_req(name: &str) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -74,7 +74,7 @@ pub fn new_iterator_add_req(name: &str, iterator_name: &str, typ: &str) -> Vec<u
     })
     .unwrap();
     body.extend(req);
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -93,20 +93,20 @@ pub fn new_msg_add_req(name: &str, message: Vec<u8>) -> Vec<u8> {
     })
     .unwrap();
     body.extend(req);
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
 
 pub fn new_log_list_req() -> Vec<u8> {
     let body = vec![0x00, 0x03];
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
 pub fn new_iterator_list_req() -> Vec<u8> {
     let body = vec![0x00, 0x06];
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -126,7 +126,7 @@ pub fn new_iterator_next_req(name: &str, message_id: usize, count: usize) -> Vec
     })
     .unwrap();
     body.extend(req);
-    let mut size = body.len().to_be_bytes().to_vec();
+    let mut size = (body.len() as u32).to_be_bytes().to_vec();
     size.extend(body);
     size
 }
@@ -150,11 +150,9 @@ pub fn send_req(bytes: Vec<u8>) -> (u8, u8, Vec<u8>) {
 
 pub fn connect_to_remits() -> TcpStream {
     if let Ok(stream) = TcpStream::connect("localhost:4242") {
-        println!("Connected to remits!");
         stream
     } else {
         println!("Couldn't connect to server...");
         panic!()
     }
 }
-
