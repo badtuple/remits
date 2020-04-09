@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::io::prelude::*;
+use std::path::Path;
 use std::time::SystemTime;
 
 use super::iters::Itr;
@@ -15,24 +17,51 @@ use crate::errors::Error;
 ///
 /// Right now the Manifest is held in memory, just like the rest of POC database
 /// until we are happy with the interface.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Manifest {
     pub logs: HashMap<String, LogRegistrant>,
     pub itrs: HashMap<String, Itr>,
+
+    #[serde(skip)]
+    file_handle: Option<File>,
 }
 
 impl Manifest {
-    pub fn new() -> Self {
-        Manifest {
+    pub fn new(path: &Path) -> Self {
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(path)
+            .expect("could not create manifest file");
+
+        let mut manifest = Manifest {
             logs: HashMap::new(),
             itrs: HashMap::new(),
-        }
+            file_handle: Some(file),
+        };
+
+        if let Err(e) = manifest.flush_to_file() {
+            error!("could not flush manifest to disk: {}", e);
+            panic!("shutting down");
+        };
+
+        manifest
     }
 
-    pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let f = File::open(path)?;
-        let m = serde_cbor::from_reader(f)?;
+    pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let file = OpenOptions::new().write(true).read(true).open(path)?;
+        let mut m: Manifest = serde_cbor::from_reader(&file)?;
+        m.file_handle = Some(file);
         Ok(m)
+    }
+
+    fn flush_to_file(&mut self) -> Result<(), std::io::Error> {
+        let bytes = serde_cbor::to_vec(&self).expect("could not serialize manifest");
+        let mut handle = self.file_handle.as_ref().unwrap();
+
+        handle.write_all(&*bytes)?;
+        handle.sync_data()?;
+        Ok(())
     }
 
     pub fn add_log(&mut self, name: String) {

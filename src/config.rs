@@ -15,7 +15,7 @@ pub struct RemitsConfig {
 
     #[argh(option, short = 'd', default = "String::from(\"/var/lib/remits\")")]
     /// directory that contains the db
-    db_directory: String,
+    pub db_path: String,
 }
 
 impl RemitsConfig {
@@ -51,7 +51,7 @@ impl ::std::default::Default for RemitsConfig {
         Self {
             port: Some("4242".into()),
             log_level: Some("info".into()),
-            db_directory: "/var/lib/remits".into(),
+            db_path: "/var/lib/remits".into(),
         }
     }
 }

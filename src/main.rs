@@ -3,6 +3,7 @@ extern crate log;
 #[macro_use]
 extern crate num_derive;
 
+use db::DB;
 use protocol::Connection;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -13,7 +14,7 @@ mod db;
 mod errors;
 mod protocol;
 
-async fn handle(db: Arc<db::DB>, mut conn: Connection) {
+async fn handle(db: Arc<DB>, mut conn: Connection) {
     debug!("accepting connection");
 
     while let Some(res) = conn.next_request().await {
@@ -41,7 +42,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut listener = TcpListener::bind(cfg.addr()).await?;
     info!("listening on {}", cfg.addr());
 
-    let db = Arc::new(db::DB::new());
+    let db = Arc::new(DB::new(cfg.db_path));
+
     loop {
         match listener.accept().await {
             Ok((socket, _)) => {

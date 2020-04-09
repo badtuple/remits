@@ -17,6 +17,8 @@ const OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
 #[derive(Debug)]
 pub struct DB {
+    path: String,
+
     manifest: RwLock<Manifest>,
     logs: RwLock<HashMap<String, Log>>,
 }
@@ -25,9 +27,19 @@ unsafe impl Send for DB {}
 unsafe impl Sync for DB {}
 
 impl DB {
-    pub fn new() -> Self {
+    pub fn new(path: String) -> Self {
+        let mut buf = std::path::PathBuf::from(&*path);
+        buf.push("manifest");
+
+        let manifest = if buf.exists() {
+            Manifest::load(&*buf).expect("could not load manifest file")
+        } else {
+            Manifest::new(&*buf)
+        };
+
         DB {
-            manifest: RwLock::new(Manifest::new()),
+            path,
+            manifest: RwLock::new(manifest),
             logs: RwLock::new(HashMap::new()),
         }
     }
