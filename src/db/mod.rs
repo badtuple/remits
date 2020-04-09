@@ -4,6 +4,7 @@ mod manifest;
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use crate::commands;
 use crate::commands::{Command, IteratorKind};
@@ -14,23 +15,24 @@ use manifest::Manifest;
 
 const OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
-// Temporarily, everything will be done in memory until we're happy with the
-// interface.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct DB {
-    manifest: Manifest,
-    logs: HashMap<String, Log>,
+    manifest: RwLock<Manifest>,
+    logs: RwLock<HashMap<String, Log>>,
 }
+
+unsafe impl Send for DB {}
+unsafe impl Sync for DB {}
 
 impl DB {
     pub fn new() -> Self {
         DB {
-            manifest: Manifest::new(),
-            logs: HashMap::new(),
+            manifest: RwLock::new(Manifest::new()),
+            logs: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn exec(&mut self, cmd: Command) -> Response {
+    pub fn exec(&self, cmd: Command) -> Response {
         use Command::*;
 
         match cmd {
@@ -49,7 +51,6 @@ impl DB {
                 iterator_kind,
                 iterator_func,
             }) => self.itr_add(log_name, iterator_name, iterator_kind, iterator_func),
-            //ItrDel { log, name } => self.itr_del(log, name),
             IteratorNext(commands::IteratorNext {
                 iterator_name,
                 message_id,
@@ -63,38 +64,66 @@ impl DB {
     }
 
     /// List all logs in db
-    fn log_list(&mut self) -> Response {
-        let logs: Vec<String> = self.manifest.logs.keys().cloned().collect();
+    fn log_list(&self) -> Response {
+        let logs: Vec<String> = self
+            .manifest
+            .read()
+            .expect("unwrapped poisoned manifest lock")
+            .logs
+            .keys()
+            .cloned()
+            .collect();
         let bytes = serde_cbor::to_vec(&logs).unwrap();
         Response::Data(vec![bytes])
     }
 
     /// Displays information about a log
-    fn log_show(&mut self, name: String) -> Response {
-        let info = serde_cbor::to_vec(&self.manifest.logs[&name])
-            .expect("could not serialize log registrant");
+    fn log_show(&self, name: String) -> Response {
+        let m = self
+            .manifest
+            .read()
+            .expect("unwrapped poisoned manifest lock");
+        let info = serde_cbor::to_vec(&m.logs[&name]).expect("could not serialize log registrant");
         Response::Data(vec![info])
     }
 
     /// Adds a new log to the DB
-    fn log_add(&mut self, name: String) -> Response {
-        self.manifest.add_log(name.clone());
-        self.logs.entry(name).or_insert_with(Log::new);
+    fn log_add(&self, name: String) -> Response {
+        let mut m = self
+            .manifest
+            .write()
+            .expect("unwrapped poisoned manifest lock");
+
+        m.add_log(name.clone());
+
+        self.logs
+            .write()
+            .expect("unwrapped poisoned logs lock")
+            .entry(name)
+            .or_insert_with(Log::new);
+
         Response::Info(OK_RESP.into())
     }
 
     /// Deletes a log from the DB
-    fn log_delete(&mut self, name: String) -> Response {
-        if let Entry::Occupied(l) = self.logs.entry(name.clone()) {
+    fn log_delete(&self, name: String) -> Response {
+        let mut logs = self.logs.write().expect("unwrapped poisoned logs lock");
+
+        if let Entry::Occupied(l) = logs.entry(name.clone()) {
             l.remove_entry();
-            self.manifest.del_log(name);
+            self.manifest
+                .write()
+                .expect("unwrapped poisoned manifest lock")
+                .del_log(name);
         };
         Response::Info(OK_RESP.into())
     }
 
     /// Adds a new message to a log
-    fn msg_add(&mut self, log: String, msg: Vec<u8>) -> Response {
-        let l = self.logs.get_mut(&log);
+    fn msg_add(&self, log: String, msg: Vec<u8>) -> Response {
+        let mut logs = self.logs.write().expect("unwrapped poisoned logs lock");
+        let l = logs.get_mut(&log);
+
         if l.is_none() {
             return Error::LogDoesNotExist.into();
         }
@@ -106,8 +135,13 @@ impl DB {
     }
 
     /// List all itrs attached to a log
-    fn itr_list(&mut self, name: Option<String>) -> Response {
-        let itrs = &self.manifest.itrs;
+    fn itr_list(&self, name: Option<String>) -> Response {
+        let itrs = &self
+            .manifest
+            .read()
+            .expect("unwrapped poisoned read lock")
+            .itrs;
+
         let out: Vec<Vec<u8>> = match name {
             Some(name) => itrs
                 .iter()
@@ -123,27 +157,42 @@ impl DB {
     }
 
     /// Adds a new unindexed iterator to a log
-    fn itr_add(&mut self, log: String, name: String, kind: IteratorKind, func: String) -> Response {
-        match self.manifest.add_itr(log, name, kind, func) {
+    fn itr_add(&self, log: String, name: String, kind: IteratorKind, func: String) -> Response {
+        let mut m = self
+            .manifest
+            .write()
+            .expect("unwrapped poisoned manifest lock");
+
+        match m.add_itr(log, name, kind, func) {
             Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
     // Delets an unused unindexed iterator to a log
-    fn itr_del(&mut self, log: String, name: String) -> Response {
-        match self.manifest.del_itr(log, name) {
+    fn itr_del(&self, log: String, name: String) -> Response {
+        let mut m = self
+            .manifest
+            .write()
+            .expect("unwrapped poisoned manifest lock");
+
+        match m.del_itr(log, name) {
             Ok(_) => Response::Info(OK_RESP.into()),
             Err(e) => e.into(),
         }
     }
 
-    fn itr_next(&mut self, name: String, msg_id: usize, count: usize) -> Response {
-        let itr = match self.manifest.itrs.get(&name) {
+    fn itr_next(&self, name: String, msg_id: usize, count: usize) -> Response {
+        let manifest = self
+            .manifest
+            .read()
+            .expect("unwrapped poisoned manifest lock");
+        let itr = match manifest.itrs.get(&name) {
             Some(itr) => itr,
             None => return Error::ItrDoesNotExist.into(),
         };
 
-        let log = match self.logs.get(&itr.log) {
+        let logs = self.logs.read().expect("unwrapped poisoned logs lock");
+        let log = match logs.get(&itr.log) {
             Some(log) => log,
             None => return Error::LogDoesNotExist.into(),
         };
@@ -162,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_db_log_list() {
-        let mut db = DB::new();
+        let db = DB::new();
         db.log_add("metric".into());
         db.log_add("test".into());
 
@@ -182,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_db_log_show() {
-        let mut db = DB::new();
+        let db = DB::new();
         db.log_add("test".into());
         let resp = db.log_show("test".into());
 
@@ -204,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_db_log_add() {
-        let mut db = DB::new();
+        let db = DB::new();
 
         match db.log_add("test".into()) {
             Response::Info(i) => assert_eq!(i, OK_RESP),
@@ -219,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_db_msg_add() {
-        let mut db = DB::new();
+        let db = DB::new();
         db.log_add("test".into());
 
         let msg = vec![0x19, 0x03, 0xE8];
@@ -228,13 +277,14 @@ mod tests {
             _ => panic!("expected info to be returned"),
         };
 
-        assert_eq!(db.logs.len(), 1);
-        assert_eq!(db.logs["test"][0], msg);
+        let logs = db.logs.read().unwrap();
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs["test"][0], msg);
     }
 
     #[test]
     fn test_db_msg_add_log_dne() {
-        let mut db = DB::new();
+        let db = DB::new();
         match db.msg_add("test".into(), b"hello".to_vec()) {
             Response::Error(_e) => (),
             _ => panic!("expected response to be an error"),
@@ -243,28 +293,26 @@ mod tests {
 
     #[test]
     fn test_db_log_del() {
-        let mut db = DB::new();
+        let db = DB::new();
         db.log_add("test".into());
-        db.manifest
-            .add_itr(
-                "test".into(),
-                "fun".into(),
-                "map".into(),
-                "return msg".into(),
-            )
-            .unwrap(); // its a test
-        assert_eq!(db.manifest.logs.len(), 1);
+        db.itr_add(
+            "test".into(),
+            "fun".into(),
+            "map".into(),
+            "return msg".into(),
+        );
+        assert_eq!(db.manifest.read().unwrap().logs.len(), 1);
 
         match db.log_delete("test".into()) {
             Response::Info(i) => assert_eq!(&*i, OK_RESP),
             _ => panic!("expected response to be info"),
         };
-        assert_eq!(db.manifest.logs.len(), 0);
+        assert_eq!(db.manifest.read().unwrap().logs.len(), 0);
     }
 
     #[test]
     fn test_db_itr_list() {
-        let mut db = DB::new();
+        let db = DB::new();
         db.log_add("log".into());
         db.itr_add("log".into(), "i1".into(), "map".into(), "return msg".into());
         db.itr_add(
@@ -293,22 +341,22 @@ mod tests {
 
     #[test]
     fn test_db_itr_add() {
-        let mut db = DB::new();
+        let db = DB::new();
         match db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into()) {
             Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
         };
-        assert_eq!(db.manifest.itrs.len(), 1);
+        assert_eq!(db.manifest.read().unwrap().itrs.len(), 1);
     }
 
     #[test]
     fn test_db_itr_del() {
-        let mut db = DB::new();
+        let db = DB::new();
         db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into());
         match db.itr_del("log".into(), "i".into()) {
             Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
         };
-        assert_eq!(db.manifest.itrs.len(), 0);
+        assert_eq!(db.manifest.read().unwrap().itrs.len(), 0);
     }
 }
