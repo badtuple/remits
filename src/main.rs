@@ -4,7 +4,7 @@ extern crate log;
 extern crate num_derive;
 
 use protocol::Connection;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 
 mod commands;
@@ -13,7 +13,7 @@ mod db;
 mod errors;
 mod protocol;
 
-async fn handle(db: Arc<Mutex<db::DB>>, mut conn: Connection) {
+async fn handle(db: Arc<db::DB>, mut conn: Connection) {
     debug!("accepting connection");
 
     while let Some(res) = conn.next_request().await {
@@ -26,7 +26,7 @@ async fn handle(db: Arc<Mutex<db::DB>>, mut conn: Connection) {
         };
         debug!("received command: {:?}", &cmd);
 
-        let resp = db.lock().unwrap().exec(cmd);
+        let resp = db.exec(cmd);
         conn.respond(resp).await;
     }
 
@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut listener = TcpListener::bind(cfg.addr()).await?;
     info!("listening on {}", cfg.addr());
 
-    let db = Arc::new(Mutex::new(db::DB::new()));
+    let db = Arc::new(db::DB::new());
     loop {
         match listener.accept().await {
             Ok((socket, _)) => {

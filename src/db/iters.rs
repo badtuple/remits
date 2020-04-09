@@ -1,8 +1,9 @@
 use super::logs::Log;
 use crate::commands::IteratorKind;
 use crate::errors::Error;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Itr {
     pub log: String,
     pub name: String,

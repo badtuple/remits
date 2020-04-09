@@ -1,6 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fs::File;
 use std::time::SystemTime;
 
 use super::iters::Itr;
@@ -14,7 +15,7 @@ use crate::errors::Error;
 ///
 /// Right now the Manifest is held in memory, just like the rest of POC database
 /// until we are happy with the interface.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifest {
     pub logs: HashMap<String, LogRegistrant>,
     pub itrs: HashMap<String, Itr>,
@@ -28,6 +29,12 @@ impl Manifest {
         }
     }
 
+    pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let f = File::open(path)?;
+        let m = serde_cbor::from_reader(f)?;
+        Ok(m)
+    }
+
     pub fn add_log(&mut self, name: String) {
         self.logs
             .entry(name.clone())
@@ -39,6 +46,7 @@ impl Manifest {
                     .as_secs() as usize,
             });
     }
+
     pub fn del_log(&mut self, name: String) {
         self.logs.remove(&name.clone());
         let to_be_deleted: Vec<String> = self
@@ -53,6 +61,7 @@ impl Manifest {
                 .expect("Could not delete itrs associated with log");
         }
     }
+
     pub fn add_itr(
         &mut self,
         log: String,
@@ -103,23 +112,16 @@ impl Manifest {
 }
 
 /// The Manifest entry for a Log
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogRegistrant {
     pub name: String,
     pub created_at: usize,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct ItrRegistrant {
-    pub log: String,
-    pub name: String,
-    pub kind: String,
-    pub func: String,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_manifest_new() {
         let manifest = Manifest::new();
@@ -131,6 +133,7 @@ mod tests {
             }
         );
     }
+
     #[test]
     fn test_manifest_add_log() {
         let mut manifest = Manifest::new();
@@ -145,6 +148,7 @@ mod tests {
         // This second add_log is here to make sure code does not panic
         manifest.add_log("test".into());
     }
+
     #[test]
     fn test_manifest_add_itr() {
         let mut manifest = Manifest::new();
