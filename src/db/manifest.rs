@@ -164,7 +164,6 @@ pub struct LogRegistrant {
 mod tests {
     use super::*;
     use crate::test_util::temp_manifest_path;
-    use std::path::Path;
 
     #[test]
     fn test_manifest_add_log() {
