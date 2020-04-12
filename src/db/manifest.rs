@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::io::prelude::*;
+use std::path::Path;
 use std::time::SystemTime;
 
 use super::iters::Itr;
@@ -15,24 +17,58 @@ use crate::errors::Error;
 ///
 /// Right now the Manifest is held in memory, just like the rest of POC database
 /// until we are happy with the interface.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Manifest {
     pub logs: HashMap<String, LogRegistrant>,
     pub itrs: HashMap<String, Itr>,
+
+    #[serde(skip)]
+    file_handle: Option<File>,
 }
 
 impl Manifest {
-    pub fn new() -> Self {
-        Manifest {
+    pub fn new(path: &Path) -> Self {
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(false)
+            .open(path)
+            .expect("could not create manifest file");
+
+        let mut manifest = Manifest {
             logs: HashMap::new(),
             itrs: HashMap::new(),
-        }
+            file_handle: Some(file),
+        };
+
+        if let Err(e) = manifest.flush_to_file() {
+            error!("could not flush manifest to disk: {}", e);
+            panic!("shutting down");
+        };
+
+        manifest
     }
 
-    pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let f = File::open(path)?;
-        let m = serde_cbor::from_reader(f)?;
+    pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let file = OpenOptions::new()
+            .write(true)
+            .read(true)
+            .append(false)
+            .open(path)?;
+        let mut m: Manifest = serde_cbor::from_reader(&file)?;
+        m.file_handle = Some(file);
         Ok(m)
+    }
+
+    fn flush_to_file(&mut self) -> Result<(), std::io::Error> {
+        let bytes = serde_cbor::to_vec(&self).expect("could not serialize manifest");
+        let mut handle = self.file_handle.as_ref().unwrap();
+
+        handle.seek(std::io::SeekFrom::Start(0))?;
+        handle.write_all(&*bytes)?;
+        handle.set_len(bytes.len() as u64)?;
+        handle.sync_data()?;
+        Ok(())
     }
 
     pub fn add_log(&mut self, name: String) {
@@ -45,6 +81,8 @@ impl Manifest {
                     .expect("could not get system time")
                     .as_secs() as usize,
             });
+
+        self.flush_to_file().expect("could not flush manifest");
     }
 
     pub fn del_log(&mut self, name: String) {
@@ -60,6 +98,8 @@ impl Manifest {
             self.del_itr(name.clone(), itr.into())
                 .expect("Could not delete itrs associated with log");
         }
+
+        self.flush_to_file().expect("could not flush manifest");
     }
 
     pub fn add_itr(
@@ -89,6 +129,7 @@ impl Manifest {
             }
         };
 
+        self.flush_to_file().expect("could not flush manifest");
         Ok(())
     }
 
@@ -107,6 +148,7 @@ impl Manifest {
             }
         };
 
+        self.flush_to_file().expect("could not flush manifest");
         Ok(())
     }
 }
@@ -121,22 +163,11 @@ pub struct LogRegistrant {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_manifest_new() {
-        let manifest = Manifest::new();
-        assert_eq!(
-            manifest,
-            Manifest {
-                logs: HashMap::new(),
-                itrs: HashMap::new(),
-            }
-        );
-    }
+    use crate::test_util::temp_manifest_path;
 
     #[test]
     fn test_manifest_add_log() {
-        let mut manifest = Manifest::new();
+        let mut manifest = Manifest::new(&*temp_manifest_path());
         manifest.add_log("test".into());
         manifest.add_log("test2".into());
         manifest.add_log("test3".into());
@@ -151,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_manifest_add_itr() {
-        let mut manifest = Manifest::new();
+        let mut manifest = Manifest::new(&*temp_manifest_path());
         let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
         let _ = manifest.add_itr("test".into(), "fun2".into(), "map".into(), "func".into());
         let _ = manifest.add_itr("test".into(), "fun3".into(), "map".into(), "func".into());
@@ -170,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_manifest_del_itr() {
-        let mut manifest = Manifest::new();
+        let mut manifest = Manifest::new(&*temp_manifest_path());
         // Normal
         let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
         assert!(manifest.itrs.contains_key("fun"));

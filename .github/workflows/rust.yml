@@ -20,6 +20,6 @@ jobs:
     - name: Clippy
       run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
     - name: Run server
-      run: cargo run &
+      run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
     - name: Run tests
       run: cargo test

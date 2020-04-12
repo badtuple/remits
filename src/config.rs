@@ -13,9 +13,9 @@ pub struct RemitsConfig {
     /// verbosity of logs
     log_level: Option<String>,
 
-    #[argh(option, short = 'd', default = "String::from(\"/var/lib/remits\")")]
+    #[argh(option, short = 'd')]
     /// directory that contains the db
-    db_directory: String,
+    pub db_path: Option<String>,
 }
 
 impl RemitsConfig {
@@ -38,6 +38,10 @@ impl RemitsConfig {
             self.port = flags.port;
         }
 
+        if flags.db_path.is_some() {
+            self.db_path = flags.db_path;
+        }
+
         self.clone()
     }
 
@@ -51,7 +55,7 @@ impl ::std::default::Default for RemitsConfig {
         Self {
             port: Some("4242".into()),
             log_level: Some("info".into()),
-            db_directory: "/var/lib/remits".into(),
+            db_path: Some("/var/lib/remits".into()),
         }
     }
 }
