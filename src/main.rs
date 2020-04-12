@@ -14,6 +14,9 @@ mod db;
 mod errors;
 mod protocol;
 
+#[cfg(test)]
+mod test_util;
+
 async fn handle(db: Arc<DB>, mut conn: Connection) {
     debug!("accepting connection");
 
@@ -37,12 +40,13 @@ async fn handle(db: Arc<DB>, mut conn: Connection) {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cfg = config::load();
+    info!("{:?}", &cfg);
 
     info!("starting server");
     let mut listener = TcpListener::bind(cfg.addr()).await?;
     info!("listening on {}", cfg.addr());
 
-    let db = Arc::new(DB::new(cfg.db_path));
+    let db = Arc::new(DB::new(cfg.db_path.unwrap()));
 
     loop {
         match listener.accept().await {

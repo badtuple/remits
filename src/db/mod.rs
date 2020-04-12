@@ -32,16 +32,7 @@ impl DB {
         buf.push("manifest");
 
         let manifest = if buf.exists() {
-            info!("{:?}", &buf);
-            println!("{:?}", &buf);
-            match Manifest::load(&*buf) {
-                Ok(m) => m,
-                Err(e) => {
-                    info!("{:?}", e);
-                    println!("{:?}", e);
-                    panic!("could not load manifest file");
-                }
-            }
+            Manifest::load(&*buf).expect("could not load manifest file")
         } else {
             Manifest::new(&*buf)
         };
@@ -228,23 +219,12 @@ impl DB {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::temp_db_path;
     use std::time::SystemTime;
-
-    static PATH: &str = "/tmp/test_remits";
-
-    fn random_path() -> String {
-        let t = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("could not get system time")
-            .as_micros();
-        let p = format!("{}/{:?}", PATH, t);
-        std::fs::create_dir_all(&*p).expect("could not create test directory");
-        p
-    }
 
     #[test]
     fn test_db_log_list() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         db.log_add("metric".into());
         db.log_add("test".into());
 
@@ -264,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_db_log_show() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         db.log_add("test".into());
         let resp = db.log_show("test".into());
 
@@ -286,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_db_log_add() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
 
         match db.log_add("test".into()) {
             Response::Info(i) => assert_eq!(i, OK_RESP),
@@ -301,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_db_msg_add() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         db.log_add("test".into());
 
         let msg = vec![0x19, 0x03, 0xE8];
@@ -317,7 +297,7 @@ mod tests {
 
     #[test]
     fn test_db_msg_add_log_dne() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         match db.msg_add("test".into(), b"hello".to_vec()) {
             Response::Error(_e) => (),
             _ => panic!("expected response to be an error"),
@@ -326,7 +306,7 @@ mod tests {
 
     #[test]
     fn test_db_log_del() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         db.log_add("test".into());
         db.itr_add(
             "test".into(),
@@ -345,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_db_itr_list() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         db.log_add("log".into());
         db.itr_add("log".into(), "i1".into(), "map".into(), "return msg".into());
         db.itr_add(
@@ -374,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_db_itr_add() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         match db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into()) {
             Response::Info(i) => assert_eq!(i, OK_RESP),
             _ => panic!("expected itr_add to return info"),
@@ -384,7 +364,7 @@ mod tests {
 
     #[test]
     fn test_db_itr_del() {
-        let db = DB::new(random_path());
+        let db = DB::new(temp_db_path());
         db.itr_add("log".into(), "i".into(), "map".into(), "return msg".into());
         match db.itr_del("log".into(), "i".into()) {
             Response::Info(i) => assert_eq!(i, OK_RESP),

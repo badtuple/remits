@@ -163,13 +163,12 @@ pub struct LogRegistrant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::temp_manifest_path;
     use std::path::Path;
-
-    static PATH: &str = "/tmp/test_remits/manifest";
 
     #[test]
     fn test_manifest_add_log() {
-        let mut manifest = Manifest::new(Path::new(PATH));
+        let mut manifest = Manifest::new(&*temp_manifest_path());
         manifest.add_log("test".into());
         manifest.add_log("test2".into());
         manifest.add_log("test3".into());
@@ -184,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_manifest_add_itr() {
-        let mut manifest = Manifest::new(Path::new(PATH));
+        let mut manifest = Manifest::new(&*temp_manifest_path());
         let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
         let _ = manifest.add_itr("test".into(), "fun2".into(), "map".into(), "func".into());
         let _ = manifest.add_itr("test".into(), "fun3".into(), "map".into(), "func".into());
@@ -203,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_manifest_del_itr() {
-        let mut manifest = Manifest::new(Path::new(PATH));
+        let mut manifest = Manifest::new(&*temp_manifest_path());
         // Normal
         let _ = manifest.add_itr("test".into(), "fun".into(), "map".into(), "func".into());
         assert!(manifest.itrs.contains_key("fun"));
