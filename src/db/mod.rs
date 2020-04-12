@@ -230,14 +230,14 @@ mod tests {
     use super::*;
     use std::time::SystemTime;
 
-    static path: &str = "/tmp/test_remits";
+    static PATH: &str = "/tmp/test_remits";
 
     fn random_path() -> String {
         let t = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("could not get system time")
             .as_micros();
-        let p = format!("{}/{:?}", path, t);
+        let p = format!("{}/{:?}", PATH, t);
         std::fs::create_dir_all(&*p).expect("could not create test directory");
         p
     }
