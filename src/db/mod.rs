@@ -4,6 +4,7 @@ mod manifest;
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::RwLock;
 
 use crate::commands;
@@ -17,7 +18,7 @@ const OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
 #[derive(Debug)]
 pub struct DB {
-    path: String,
+    path: PathBuf,
 
     manifest: RwLock<Manifest>,
     logs: RwLock<HashMap<String, Log>>,
@@ -28,13 +29,14 @@ unsafe impl Sync for DB {}
 
 impl DB {
     pub fn new(path: String) -> Self {
-        let mut buf = std::path::PathBuf::from(&*path);
-        buf.push("manifest");
+        let path = PathBuf::from(&*path);
+        let mut manifest_path = path.clone();
+        manifest_path.push("manifest");
 
-        let manifest = if buf.exists() {
-            Manifest::load(&*buf).expect("could not load manifest file")
+        let manifest = if manifest_path.exists() {
+            Manifest::load(&*manifest_path).expect("could not load manifest file")
         } else {
-            Manifest::new(&*buf)
+            Manifest::new(&*manifest_path)
         };
 
         DB {
@@ -111,8 +113,8 @@ impl DB {
         self.logs
             .write()
             .expect("unwrapped poisoned logs lock")
-            .entry(name)
-            .or_insert_with(Log::new);
+            .entry(name.clone())
+            .or_insert_with(|| Log::new(self.path.clone(), &*name));
 
         Response::Info(OK_RESP.into())
     }
