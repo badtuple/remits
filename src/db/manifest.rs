@@ -165,7 +165,7 @@ mod tests {
     use super::*;
     use std::path::Path;
 
-    static path: &'static str = "/tmp/test_remits/manifest";
+    static path: &str = "/tmp/test_remits/manifest";
 
     #[test]
     fn test_manifest_add_log() {

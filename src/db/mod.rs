@@ -230,7 +230,7 @@ mod tests {
     use super::*;
     use std::time::SystemTime;
 
-    static path: &'static str = "/tmp/test_remits";
+    static path: &str = "/tmp/test_remits";
 
     fn random_path() -> String {
         let t = SystemTime::now()
