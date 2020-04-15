@@ -26,4 +26,4 @@ jobs:
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
       with:
-        args: '-v --exclude-files ./src/bin/* ./src/bin/*/*'
+        args: '-v --exclude-files src/bin/* src/bin/*/*'
