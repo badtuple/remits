@@ -29,11 +29,13 @@ jobs:
     - name: Cache cargo build
       uses: actions/cache@v1
       with:
-        path: /home/runner/work/remits/remits/target
+        path: target
         key: ${{ runner.os }}-cargo-build-target
 
     - name: Build
       run: cargo build
+    - name: Build target
+      run: ls -la
     - name: Fmt
       run: rustfmt --check --edition 2018 ./src/**/*.rs
     - name: Clippy
@@ -45,3 +47,5 @@ jobs:
       uses: actions-rs/tarpaulin@v0.1
       with:
         args: '-v --frozen --exclude-files src/bin/* src/bin/*/*'
+    - name: tarpaulin target
+      run: ls -la
