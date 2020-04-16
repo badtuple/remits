@@ -31,7 +31,6 @@ jobs:
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      if: steps.cache.outputs.cache-hit != 'true'
       run: cargo build --bin remits --verbose
     - name: Fmt
       run: rustfmt --check --edition 2018 ./src/**/*.rs
