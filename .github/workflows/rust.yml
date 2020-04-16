@@ -32,8 +32,6 @@ jobs:
           ${{ runner.os }}-normal-build-cache-
     - name: Build
       run: cargo build --bin remits
-    - name: Build target
-      run: ls -la target && ls -la target/debug
     - name: Fmt
       run: rustfmt --check --edition 2018 ./src/**/*.rs
     - name: Clippy
