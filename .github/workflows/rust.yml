@@ -30,8 +30,6 @@ jobs:
         key: ${{ runner.os }}-normal-build-cache-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-normal-build-cache-
-    # - name: Build target
-    #   run: ls -la target && ls -la target/debug
     - name: Build
       run: cargo build --bin remits
     - name: Build target
@@ -43,20 +41,20 @@ jobs:
     - name: Run server
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
 
-    # - name: Make tarpaulin output folder
-    #   run: mkdir tarpaulin-out
-    # - name: Cache tarpaulin deps
-    #   uses: actions/cache@v1
-    #   with:
-    #     path: tarpaulin-out
-    #     key: ${{ runner.os }}-tarpaulin-build-cache-${{ hashFiles('**/Cargo.lock') }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-tarpaulin-build-cache-
+    - name: Make tarpaulin output folder
+      run: mkdir tarpaulin-out
+    - name: Cache tarpaulin deps
+      uses: actions/cache@v1
+      with:
+        path: tarpaulin-out
+        key: ${{ runner.os }}-tarpaulin-build-cache-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-tarpaulin-build-cache-
 
-    # - name: Run cargo-tarpaulin
-    #   uses: actions-rs/tarpaulin@v0.1
-    #   with:
-    #     args: '-v --frozen --target-dir tarpaulin-out/ --exclude-files src/bin/* src/bin/*/*'
+    - name: Run cargo-tarpaulin
+      uses: actions-rs/tarpaulin@v0.1
+      with:
+        args: '-v --frozen --target-dir tarpaulin-out/ --exclude-files src/bin/* src/bin/*/*'
 
     - name: Permissions
       run: sudo chown -R $(whoami):$(id -ng) ~/.cargo/
