@@ -33,7 +33,7 @@ impl Log {
 
     pub fn add_msg(&mut self, msg: Vec<u8>) -> Result<(), Error> {
         let res: Result<CborValue, CborError> = serde_cbor::from_reader(&mut &*msg);
-        if let Err(_e) = res {
+        if let Err(_) = res {
             return Err(Error::MsgNotValidCbor);
         }
         self.data.push(msg);
