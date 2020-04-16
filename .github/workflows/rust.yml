@@ -34,7 +34,7 @@ jobs:
     - name: Build target
       run: ls -la target && ls -la target/debug
     - name: Build
-      run: cargo build
+      run: cargo build --bin remits
     - name: Build target
       run: ls -la target && ls -la target/debug
     - name: Fmt
@@ -49,4 +49,4 @@ jobs:
       with:
         args: '-v --frozen --exclude-files src/bin/* src/bin/*/*'
     - name: tarpaulin target
-      run: ls -la target && ls -la target/debug
+      run: ls -la target && ls -la target/tarpaulin
