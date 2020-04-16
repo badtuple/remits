@@ -37,6 +37,7 @@ jobs:
         key: ${{ runner.os }}-tarpaulin-build-cache-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-tarpaulin-build-cache-
+
     - name: Build
       run: cargo build --bin remits
     - name: Fmt
@@ -45,8 +46,7 @@ jobs:
       run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
     - name: Run server
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
-
-
+    # Coverage
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
       with:
