@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// MAX_SEGMENT_SIZE is the number of bytes a segment can contain before we have to roll over to a
 /// new one.  Right now, this is non-configurable and is set to 1 GiB.
-const MAX_SEGMENT_SIZE: usize = 1_073_741_824;
+//const MAX_SEGMENT_SIZE: usize = 1_073_741_824;
 
 /// A Segment is a set of two files, a DataFile and an IndexFile.
 /// The combination of these store all the data and where the
@@ -76,14 +76,8 @@ impl Segment {
             timestamp,
             format_version: FormatVersion::Uncompressed,
             data_file: DataFile::create(dat_path),
-            index_file: IndexFile {
-                file: File::create(idx_path).unwrap(),
-            },
+            index_file: IndexFile::create(idx_path, timestamp),
         }
-    }
-
-    fn add_msg(&self, msg: Vec<u8>) {
-        //self.r
     }
 }
 
@@ -125,8 +119,8 @@ impl DataFile {
         file.write_all(Self::MAGIC_NUMBER)
             .expect("could not write initial bytes to datafile");
 
-        file.write_all(&(0x00 as u8).to_le_bytes());
-        //.expect("could not write initial bytes to datafile");
+        file.write_all(&(0x00 as u8).to_le_bytes())
+            .expect("could not write initial bytes to datafile");
 
         Self { file }
     }
