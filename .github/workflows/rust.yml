@@ -42,12 +42,15 @@ jobs:
       run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
     - name: Run server
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
-
+    - name: Env
+      run: env
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
       with:
         args: '-v --frozen --exclude-files src/bin/* src/bin/*/*'
     - name: tarpaulin target
       run: ls -la target && ls -la target/debug
+    - name: Env
+      run: env && ls -la ~/.cargo
     - name: Permissions
       run: sudo chown -R $(whoami):$(id -ng) ~/.cargo/
