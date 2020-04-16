@@ -35,7 +35,7 @@ jobs:
     - name: Build
       run: cargo build
     - name: Build target
-      run: ls -la
+      run: ls -la target && ls -la target/debug
     - name: Fmt
       run: rustfmt --check --edition 2018 ./src/**/*.rs
     - name: Clippy
@@ -48,4 +48,4 @@ jobs:
       with:
         args: '-v --frozen --exclude-files src/bin/* src/bin/*/*'
     - name: tarpaulin target
-      run: ls -la
+      run: ls -la target && ls -la target/debug
