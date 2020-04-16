@@ -13,9 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    # Cache deps
     - name: Permissions
       run: sudo chown -R $(whoami):$(id -ng) ~/.cargo/
-      # Cache deps
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
