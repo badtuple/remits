@@ -1,18 +1,20 @@
 /// All tests in this folder assume a server running on localhost:4242
 use futures::SinkExt;
+use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use serde::{Deserialize, Serialize};
-
 use bytes::Bytes;
 
-static LOCAL_REMITS: &str = "localhost:4242";
+mod common;
+
+static LOCAL_REMITS: &str = "localhost:4243";
 static OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
 
 #[tokio::test]
 async fn integration_tests() {
+    let server = common::start_server();
     let framer = &mut (connect_to_remits().await);
 
     println!("test: should be able to add a log");
@@ -82,6 +84,7 @@ async fn integration_tests() {
     assert_eq!(code, 0x00);
     let out: Vec<String> = serde_cbor::from_slice(&payload[4..]).unwrap();
     assert_eq!(out, vec!("test"));
+    common::teardown(&server);
 }
 
 fn new_log_add_req(name: &str) -> Vec<u8> {
@@ -182,7 +185,7 @@ async fn send_req(
 async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
     let stream = TcpStream::connect(LOCAL_REMITS)
         .await
-        .expect("could not connect to localhost:4242");
+        .expect("could not connect to localhost:4243");
 
     Framed::new(stream, LengthDelimitedCodec::new())
 }
