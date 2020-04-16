@@ -51,6 +51,11 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}-c
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}-c
       - name: Run server
         run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
       - name: Run tests
