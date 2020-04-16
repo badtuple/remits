@@ -30,6 +30,13 @@ jobs:
         key: ${{ runner.os }}-normal-build-cache-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-normal-build-cache-
+    - name: Cache tarpaulin deps
+      uses: actions/cache@v1
+      with:
+        path: tarpaulin-out
+        key: ${{ runner.os }}-tarpaulin-build-cache-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-tarpaulin-build-cache-
     - name: Build
       run: cargo build --bin remits
     - name: Fmt
@@ -39,15 +46,6 @@ jobs:
     - name: Run server
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
 
-    - name: Make tarpaulin output folder
-      run: mkdir tarpaulin-out
-    - name: Cache tarpaulin deps
-      uses: actions/cache@v1
-      with:
-        path: tarpaulin-out
-        key: ${{ runner.os }}-tarpaulin-build-cache-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-tarpaulin-build-cache-
 
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
