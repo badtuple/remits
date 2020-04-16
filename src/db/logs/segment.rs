@@ -31,11 +31,11 @@ impl Segment {
                     .into_string()
                     .expect("segment file contains non-utf8 string")
             })
-            .filter(|entry| entry.split(".").last().unwrap() == "dat")
+            .filter(|entry| entry.split('.').last().unwrap() == "dat")
             .collect();
 
         // New log with no segments. Make a new one.
-        if files.len() == 0 {
+        if files.is_empty() {
             let timestamp = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -69,7 +69,7 @@ impl Segment {
         let mut dat_path = path.clone();
         dat_path.push(dat);
 
-        let mut idx_path = path.clone();
+        let mut idx_path = path;
         idx_path.push(idx);
 
         Segment {

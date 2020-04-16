@@ -16,8 +16,7 @@ pub struct Log {
 }
 
 impl Log {
-    pub fn new(db_path: PathBuf, name: &str) -> Self {
-        let mut path = db_path.clone();
+    pub fn new(mut path: PathBuf, name: &str) -> Self {
         path.push("logs");
         path.push(name);
 
@@ -33,7 +32,7 @@ impl Log {
 
     pub fn add_msg(&mut self, msg: Vec<u8>) -> Result<(), Error> {
         let res: Result<CborValue, CborError> = serde_cbor::from_reader(&mut &*msg);
-        if let Err(_) = res {
+        if res.is_err() {
             return Err(Error::MsgNotValidCbor);
         }
         self.data.push(msg);
