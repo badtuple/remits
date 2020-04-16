@@ -38,11 +38,10 @@ jobs:
       run: rustfmt --check --edition 2018 ./src/**/*.rs
     - name: Clippy
       run: rustup component add clippy && cargo clippy --all-targets -- -D warnings
-  
     - name: Run server
       run: mkdir "$GITHUB_WORKSPACE/remits_test" && cargo run -- -d "$GITHUB_WORKSPACE/remits_test" &
 
     - name: Run cargo-tarpaulin
       uses: actions-rs/tarpaulin@v0.1
       with:
-        args: '-v --exclude-files src/bin/* src/bin/*/*'
+        args: '-v --frozen --exclude-files src/bin/* src/bin/*/*'
