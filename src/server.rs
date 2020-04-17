@@ -1,8 +1,8 @@
+use crate::config::RemitsConfig;
 use crate::db::DB;
 use crate::protocol::Connection;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use crate::config::RemitsConfig;
 
 pub async fn handle(db: Arc<DB>, mut conn: Connection) {
     debug!("accepting connection");
@@ -24,8 +24,7 @@ pub async fn handle(db: Arc<DB>, mut conn: Connection) {
     debug!("closing connection");
 }
 
-#[tokio::main]
-pub async fn run_server(cfg: RemitsConfig){
+pub async fn run_server(cfg: RemitsConfig) {
     info!("starting server");
     let mut listener = TcpListener::bind(cfg.addr()).await.unwrap();
     info!("listening on {}", cfg.addr());
