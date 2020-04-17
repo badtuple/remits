@@ -1,11 +1,8 @@
-#![feature(async_closure)]
-
 use bytes::Bytes;
-use futures::Future;
 use futures::SinkExt;
 use serde::{Deserialize, Serialize};
 use std::panic;
-use std::{thread, time};
+use std::{time};
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
@@ -27,7 +24,7 @@ async fn integration_tests() {
         .await
         .expect("could not connect to localhost:4243");
 
-    let mut framer = &mut Framed::new(stream, LengthDelimitedCodec::new());
+    let framer = &mut Framed::new(stream, LengthDelimitedCodec::new());
 
     //let framer = &mut common::start_server().await;
     println!("test: should be able to add a log");

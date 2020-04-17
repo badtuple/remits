@@ -1,7 +1,4 @@
-use std::{thread, time};
 use tempfile::TempDir;
-use tokio::net::TcpStream;
-use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 pub async fn start_server() {
     // Create a directory inside of `std::env::temp_dir()`.
