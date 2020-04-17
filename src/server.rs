@@ -1,8 +1,8 @@
-use db::DB;
-use protocol::Connection;
+use crate::db::DB;
+use crate::protocol::Connection;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use config::RemitsConfig;
+use crate::config::RemitsConfig;
 
 pub async fn handle(db: Arc<DB>, mut conn: Connection) {
     debug!("accepting connection");

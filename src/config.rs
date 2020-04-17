@@ -7,11 +7,11 @@ use serde::{Deserialize, Serialize};
 pub struct RemitsConfig {
     #[argh(option, short = 'p')]
     /// what port to start remits on
-    port: Option<String>,
+    pub port: Option<String>,
     // v can change dont care
     #[argh(option, short = 'v')]
     /// verbosity of logs
-    log_level: Option<String>,
+    pub log_level: Option<String>,
 
     #[argh(option, short = 'd')]
     /// directory that contains the db

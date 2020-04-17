@@ -1,24 +1,18 @@
-#[macro_use]
-extern crate lazy_static;
+use bytes::Bytes;
 use futures::SinkExt;
 use serde::{Deserialize, Serialize};
+use std::panic;
 use tokio::net::TcpStream;
 use tokio::stream::StreamExt;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
-use std::panic;
-use bytes::Bytes;
-use std::process::Child;
 
 mod common;
 
-static LOCAL_REMITS: &str = "0.0.0.0:4243";
 static OK_RESP: &[u8] = &[0x62, 0x6F, 0x6B];
-
 
 #[tokio::test]
 async fn integration_tests() {
-    common::start_server();
-    let framer = &mut (connect_to_remits().await);
+    let framer = &mut common::start_server().await;
     println!("test: should be able to add a log");
     let (kind, code, payload) = send_req(framer, new_log_add_req("test")).await;
     assert_eq!(kind, 0x01);
@@ -181,12 +175,4 @@ async fn send_req(
         .expect("could not understand response");
 
     (result[0], result[1], result[2..].to_vec())
-}
-
-async fn connect_to_remits() -> Framed<TcpStream, LengthDelimitedCodec> {
-    let stream = TcpStream::connect(LOCAL_REMITS)
-        .await
-        .expect("could not connect to localhost:4243");
-
-    Framed::new(stream, LengthDelimitedCodec::new())
 }

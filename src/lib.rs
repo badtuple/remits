@@ -3,11 +3,11 @@
 extern crate log;
 #[macro_use]
 extern crate num_derive;
-mod main;
-mod commands;
-mod config;
-mod db;
-mod errors;
-mod protocol;
+pub mod commands;
+pub mod config;
+pub mod db;
+pub mod errors;
+pub mod protocol;
+pub mod server;
 #[cfg(test)]
 mod test_util;
