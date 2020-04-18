@@ -5,16 +5,31 @@
 # Summary
 [summary]: #summary
 
-This RFC introduces a simple "pipe and filter" style language for defining Iterators. This allows users to manipulate streams off of Logs at the _Stream_ level and not the Message level that current iterators require.
+This RFC introduces a simple "pipe and filter" style language for defining
+Iterators. This allows users to manipulate streams of Messages at the _Stream_
+level, instead of Message level.
 
-Users will still be able to define arbitrary transformation of Messages via Lua functions, but those functions will be registered as Filters that can be included in an Iterator.
+Users will still be able to define arbitrary transformation of Messages via Lua
+functions, but those functions will be registered as Filters that can be included
+in an Iterator.
 
 # Motivation
 [motivation]: #motivation
 
-All transformations are technically expressible via composition of Map, Filter, and Reduce iterators. Just because it's possible doesn't mean it's ergonomic however. Common scenarios are so complex to implement at the Message level that Remits would seem incredibly limited to the prospective user.
+All transformations are expressible via composition of Map, Filter, and Reduce
+Iterators. Those expressions often turn out to be incredibly unergonomic.
+Common queries can be so complex to implement from the Message level that Remits
+will seem incredibly limited to prospective users.
 
-Consider a Log of events containing an integer field `val`. The user wants to get the average `val` for each hour. Implementation at the Message level, the user would use a Reduce iterator to collect the `val` fields for the current hour and 1 from the next, a Filter iterator ontop of that determines if there's a single `val` for the next hour (meaning the previous hour had been fully collected) and let only that Message through. Ontop of _that_ they'd need a Map to then take the Messages passed from the Filter and average them for the previous group and return it. Not the most ergonomic at all, and uses quite a bit of memory unnecessarily.
+For example, a User has a Log of Messages containing an integer field `val`.
+They want to get the average `val` for each hour.
+Implementation at the Message level requires multiple iterators:
+
+* a Reduce Iterator to collect the `val` fields grouped by hour
+* a Filter Iterator that will filter out any aggregates that do not have exactly one `val` in the latest hour. That means the previous hour had been fully collected.
+* a Map Iterator that takes the aggregate and averages the `val`s for the second to latest hour.
+
+This is not trivial at all, and uses quite a bit of memory unnecessarily.
 
 At the _stream_ level, the user creates this iterator ontop of their Log:
 
@@ -22,46 +37,82 @@ At the _stream_ level, the user creates this iterator ontop of their Log:
 LOG_NAME | bin(1h) | avg(msg.val)
 ```
 
-This is more approachable and flexible. It also allows us to optimize data access and memory usage forknown filters. This also simplifies implementation of custom Lua functions, because then the function only takes a Message and returns a Message. There's no longer any need to have different formats for Map, Reduce, and Filter iterators.
+This is more approachable and flexible. It also allows us to optimize data
+access and memory usage for known filters.
+
+This also simplifies implementation of custom Lua functions. Filters only take
+Messages and only return Messages. The different formats for current Map,
+Reduce, and Filter iterators are eliminated.
 
 # Design
 [explanation]: #explanation
 
-The language is purposefully kept simple. There is a single input at the beginning which refers to either a Log or other Iterator. One or more Filters can be added after, separated by a pipe `|`.  A `Filter` is a function that takes 1 or more Messages and returns 0 or 1 Message. There will be builtin Filters, but a user can define a custom Filter in Lua if they desire. User defined Filters are prefixed with an `@` to distinguish them from builtins.
+The language is purposefully simple. A Log or Iterator identifier begins the query.
+Zero or more Filters can be appened, separated by a pipe `|`. A Filter is a
+function that takes 1 or more Messages and returns 0 or more Messages. There are
+builtin Filters, and users can define a custom Filters in Lua. User defined
+Filters are prefixed with an `@` to distinguish them from builtins.
 
-The language will also need to support boolean expressions, primitive literal instantiation, and likely basic math. This is because Filters often need conditions.  Consider this query:
+The language also needs to support boolean expressions, primitive literals, and
+basic operators. This is to allow passing conditions to Filters.
+
+Consider this query:
 
 ```
-LOG_NAME | filter( msg.val >= 4 )
+MY_LOG | filter( msg.val >= 4 )
 ```
 
-This query passes the stream into the `filter` Filter. From a language standpoint, it also includes the instantiation of an expression, a primitive literal `4`, a value access `.val`, and a binary operator `>=`.  Because these are necessary things to be able to define, the language has to be slightly more fleshed out than just splitting on `|` and mapping the filter names to an in-memory representation.
+Messages from `MY_LOG` are passed to the `filter` Filter. It also includes the
+instantiation of an expression, a primitive literal `4`, a value access
+`msg.val`, and a binary operator `>=`. This means the language has to be
+slightly more fleshed out than just splitting on `|` and mapping the filter 
+ames to an in-memory representation.
 
-This design removes the existing idea of Map, Filter, and Reduce Iterator types. An Iterator is now just an input and a list of Filters. This hopefully simplifies a user's idea of an Iterator.
+The existing Map, Filter, and Reduce Iterator types are removed. Iterators are
+now just lists of Filters. This should simplify understanding of Iterators.
 
-Iterators would still be queried the same way they are now. This only addresses the creation of Iterators, and the level of abstraction they operate on.
+Iterators are still queried as they are now. This only addresses Iterator
+creation, and the level of abstraction they operate on.
 
 # Drawbacks
 [drawbacks]: #drawbacks
 
-This requires users to learn a new query language. Ideally it's kept simple, but it's still something else the user has to learn. Ways to mitigate this would be to use filters that line up with established libraries such as Lodash, jq, Rust's Iterator package, or Ruby's Enumerable class.
+This requires users to learn a new query language. Ideally it's kept simple, but
+it's still something the user has to learn. Using familiar filters from known
+libraries like Lodash, jq, Rust's iterator package, or Ruby's Enumberable class
+might help ease learning.
 
 # Alternatives and Prior Art
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-The most obvious alternative is to keep down the route of keeping Map, Reduce, and Filter Iterators. Technically everything is expressible and the implementation is conceptually simple. I believe that this leads to an undue burden on the user as explained above.
+The most obvious alternative is to keep Message level Iterators only. Everything
+is still expressible and conceptually simple. However this places undue burden
+on the user as explained above.
 
-A second alternative would be to implement or use a premade lisp instead of a pipe-filter langauge. Plenty of mature lisps exist for Rust already. One upside is that Lisp is very expressive when it comes to expressing chains of functions, and so making a 1:1 translation of Lodash or similar would be trivial. Another upside is that since the lisp would be a full language, we'd be able to use that to code Filters instead of Lua. I prefer Lua on it's own, but simplifying back down to one language might be worth it. However Lisp just fundamentally turns me off...it's hard to read with it's lack of syntax and I think people not being able to eye-ball an Iterator "query" and instantly know what's happening would deter users.
+Another alternative is to implement or use a premade lisp instead of a
+pipe-filter langauge. Many mature lisps exist for Rust already. Lisps are very
+simple and express function chains well. Making a near 1:1 translation of Lodash
+or similar would be simple. Since a lisp would be a full language, it could be
+used to define Filters instead of Lua. I prefer Lua on it's own, but unifying
+back to one language might be worth it. However Lisp just fundamentally turns me
+off. It's lack of syntax makes it hard to read. If users cannot eye-ball an
+Iterator and intuitively understand it, they will be deterred.
 
-One common path taken by similar systems is to create a SQL-like language optimized for streaming. Examples are Kafka's KSQL and Materialize.io's adaptation of ANSI SQL for a constantly materializing view. There's the upside that people know and understand SQL and SQL-likes. However I believe that much of the simplicity of Remits comes from the fact that it's not trying to abstract away the idea that it's a stream/timeseries. By being direct with the pipeline format it's easier for users to reason about.
+One common path taken by similar systems is to create a SQL-like language
+optimized for streaming. Examples are Kafka's KSQL and Materialize.io's
+adaptation of ANSI SQL for constantly materializing views. People's familiarity
+with SQL and SQL-likes is a plus. However much of the simplicity of Remits comes
+from not trying to abstract away the idea that it's a stream/timeseries. A
+transparent pipeline format is easier for users to reason about.
 
-jq is a very interesting case. It allows manipulation of JSON accessed via a stream. Some commands require consuming the full stream, which would not be allowed in Remits, but due to CBOR's similarity to JSON, it's conceivable that the majority of jq's language could be ported and used _as_ the Remits processing language. This is alot more work however. I believe jq is turing complete and can be used for more than queries. It also allows arbitrary nesting of logic. Having a simpler, less-powerful language is a plus for us. It allows us to optimize for the common use case and allow custom Lua Filters as an escape hatch for more flexible queries.
+jq is a language that manipulates JSON streams and may fit this use case.
+Commands that consume the full stream cannot be supported, but CBOR's similarity
+to JSON means a subset of jq could be used as Remits' processing language.
+I do think that jq's syntax is harder to understand than a pipeline language.
 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
-* Is there an open source and adopted language that is simple and optimized for our use case? While implementation wouldn't be hard for a simple pipe-and-filter langauge, it'd be great if we could piggyback and reuse an existing language and it's documentation.
-
-* What filters do we ship with initially? I believe a few very simple ones should be enough too start with.
-
-* Exact syntax is still to be determined. Especially around primitive type literals and how value access within the message works.
+* Is there an open source/adopted language that is simple and optimized for our use case? It'd be great to reuse an existing language and it's documentation.
+* What filters do we ship with initially? A few very simple ones should be enough to start.
+* Exact syntax needs to be determined. Especially around primitive type literals and value accesses.
