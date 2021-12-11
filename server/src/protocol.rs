@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 pub enum Body {
     Ping(PingBody),
     //LogShow(LogShowBody),
-    //LogAdd(LogAddBody),
+    LogAdd(LogAddBody),
     //LogDelete(LogDeleteBody),
     //LogList(LogListBody),
-    //MessageAdd(MessageAddBody),
+    MessageAdd(MessageAddBody),
     //IteratorAdd(IteratorAddBody),
     //IteratorList(IteratorListBody),
     //IteratorNext(IteratorNextBody),
@@ -20,4 +20,17 @@ pub enum Body {
 pub struct PingBody {
     /// ID of the message. Unique to this connection.
     pub id: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct LogAddBody {
+    /// ID of the message. Unique to this connection.
+    pub id: u64,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MessageAddBody {
+    pub id: u64,
+    pub body: String,
 }
